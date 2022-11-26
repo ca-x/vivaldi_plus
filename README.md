@@ -6,8 +6,8 @@
 - 便携设计，程序放在App目录，数据放在Data目录（不兼容原版数据，可以重装系统换电脑不丢数据）
 - 移除更新错误警告（因为是绿色版没有自动更新功能）
 # 获取
-采用GitHub Actions自动编译发布，下载地址：[https://nightly.link/icy37785/chrome_plus/workflows/build/main](https://nightly.link/icy37785/chrome_plus/workflows/build/main)
+采用GitHub Actions自动编译发布，下载地址：[Powered by nightly.link](https://nightly.link/czyt/vivaldi_plus/workflows/build/main)
 
-[![build status](https://github.com/icy37785/chrome_plus/actions/workflows/build.yml/badge.svg)](https://github.com/icy37785/chrome_plus/actions/workflows/build.yml)
+[![build status](https://github.com/czyt/vivaldi_plus/actions/workflows/build.yml/badge.svg)](https://github.com/czyt/vivaldi_plus/actions/workflows/build.yml)
 # 安装
 dll放入解压版Chrome目录即可
