@@ -11,3 +11,5 @@
 [![build status](https://github.com/czyt/vivaldi_plus/actions/workflows/build.yml/badge.svg)](https://github.com/czyt/vivaldi_plus/actions/workflows/build.yml)
 # 安装
 dll放入解压版Chrome目录即可
+## 源项目
+[chromePlus](https://github.com/icy37785/chrome_plus)
