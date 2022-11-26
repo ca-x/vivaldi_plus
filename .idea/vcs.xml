@@ -2,5 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/minhook" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/mini_gzip" vcs="Git" />
   </component>
 </project>
