@@ -51,14 +51,14 @@ NTSTATUS WINAPI MyLdrLoadDll(IN PWCHAR PathToFile OPTIONAL,
                              IN PUNICODE_STRING ModuleFileName,
                              OUT PHANDLE ModuleHandle)
 {
-    static bool chrome_loaded = false;
+    static bool vivaldi_loaded = false;
 
     NTSTATUS ntstatus = RawLdrLoadDll(PathToFile, Flags, ModuleFileName, ModuleHandle);
     if (NT_SUCCESS(ntstatus))
     {
-        if (wcsstr(ModuleFileName->Buffer, L"chrome.dll") != 0 && !chrome_loaded)
+        if (wcsstr(ModuleFileName->Buffer, L"vivaldi.dll") != 0 && !vivaldi_loaded)
         {
-            chrome_loaded = true;
+            vivaldi_loaded = true;
             Outdated((HMODULE)*ModuleHandle);
             DevWarning((HMODULE)*ModuleHandle);
         }
