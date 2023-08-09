@@ -11,5 +11,9 @@
 [![build status](https://github.com/czyt/vivaldi_plus/actions/workflows/build.yml/badge.svg)](https://github.com/czyt/vivaldi_plus/actions/workflows/build.yml)
 # 安装
 dll放入解压版Vivaldi目录(vivaldi.exe同目录)即可
+## 依赖
+本项目需要yaml-cpp库。可以使用以下命令进行安装：
+'sudo apt-get install libyaml-cpp-dev'
+确保在项目设置中包含库的头文件。
 ## 源项目
 [chromePlus](https://github.com/icy37785/chrome_plus)
