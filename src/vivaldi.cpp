@@ -1,3 +1,7 @@
+// The yaml-cpp library is a required dependency for this project.
+// To install the library, you can use the following command: 
+// 'sudo apt-get install libyaml-cpp-dev'
+// Make sure to configure your project settings to include the library's header files.
 #include <yaml-cpp/yaml.h>
 #include <map>
 #include <string>
