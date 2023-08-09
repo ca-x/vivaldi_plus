@@ -16,7 +16,7 @@ end
 add_cxflags("/utf-8")
 
 add_links("gdiplus", "kernel32", "user32", "gdi32", "winspool", "comdlg32")
-add_links("advapi32", "shell32", "ole32", "oleaut32", "uuid", "odbc32", "odbccp32", "yaml-cpp")
+add_links("advapi32", "shell32", "ole32", "oleaut32", "uuid", "odbc32", "odbccp32")
 
 target("minhook")
     set_kind("static")
