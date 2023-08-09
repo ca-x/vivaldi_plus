@@ -14,9 +14,9 @@ std::map<std::string, std::string> getParametersFromYaml(std::string yamlFilePat
             parameters[it->first.as<std::string>()] = it->second.as<std::string>();
         }
     } catch (YAML::BadFile e) {
-        // Handle exception
+        std::cerr << "Error: Unable to open the YAML file. Please ensure that the yaml-cpp library is installed and the YAML file exists." << std::endl;
     } catch (YAML::ParserException e) {
-        // Handle exception
+        std::cerr << "Error: Unable to parse the YAML file. Please ensure that the yaml-cpp library is correctly configured and the YAML file is correctly formatted." << std::endl;
     }
     return parameters;
 }
