@@ -14,9 +14,9 @@ std::map<std::string, std::string> getParametersFromYaml(std::string yamlFilePat
             parameters[it->first.as<std::string>()] = it->second.as<std::string>();
         }
     } catch (YAML::BadFile e) {
-        std::cerr << "Error: Unable to open the YAML file. Please ensure that the yaml-cpp library is installed and the YAML file exists." << std::endl;
+        DebugLog(L"Error: Unable to open the YAML file. Please ensure that the yaml-cpp library is installed and the YAML file exists.");
     } catch (YAML::ParserException e) {
-        std::cerr << "Error: Unable to parse the YAML file. Please ensure that the yaml-cpp library is correctly configured and the YAML file is correctly formatted." << std::endl;
+        DebugLog(L"Error: Unable to parse the YAML file. Please ensure that the yaml-cpp library is correctly configured and the YAML file is correctly formatted.");
     }
     return parameters;
 }
@@ -27,5 +27,5 @@ int main(int argc, char* argv[]) {
     for (auto const& param : parameters) {
         startupCommand += " --" + param.first + "=" + param.second;
     }
-    system(startupCommand.c_str());
+    ShellExecute(NULL, "open", startupCommand.c_str(), NULL, NULL, SW_SHOWDEFAULT);
 }
