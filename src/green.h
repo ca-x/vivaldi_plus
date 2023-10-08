@@ -143,6 +143,36 @@ NET_API_STATUS WINAPI MyNetUserGetInfo(
     return ret;
 }
 
+#define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON (0x00000001ui64 << 44)
+
+typedef BOOL(WINAPI *pUpdateProcThreadAttribute)(
+    LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+    DWORD dwFlags,
+    DWORD_PTR Attribute,
+    PVOID lpValue,
+    SIZE_T cbSize,
+    PVOID lpPreviousValue,
+    PSIZE_T lpReturnSize);
+
+pUpdateProcThreadAttribute RawUpdateProcThreadAttribute = nullptr;
+
+BOOL WINAPI MyUpdateProcThreadAttribute(
+    __inout LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+    __in DWORD dwFlags,
+    __in DWORD_PTR Attribute,
+    __in_bcount_opt(cbSize) PVOID lpValue,
+    __in SIZE_T cbSize,
+    __out_bcount_opt(cbSize) PVOID lpPreviousValue,
+    __in_opt PSIZE_T lpReturnSize)
+{
+    if (Attribute == PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY && cbSize >= sizeof(DWORD64))
+    {
+        PDWORD64 policy_value_1 = &((PDWORD64)lpValue)[0];
+        *policy_value_1 &= ~PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
+    }
+    return RawUpdateProcThreadAttribute(lpAttributeList, dwFlags, Attribute, lpValue, cbSize, lpPreviousValue, lpReturnSize);
+}
+
 void MakeGreen()
 {
     HMODULE kernel32 = LoadLibraryW(L"kernel32.dll");
@@ -246,5 +276,17 @@ void MakeGreen()
         {
             DebugLog(L"MH_CreateHook NetUserGetInfo failed:%d", status);
         }
+    }
+
+    LPVOID ppUpdateProcThreadAttribute = nullptr;
+    MH_STATUS status = MH_CreateHookApiEx(L"kernel32", "UpdateProcThreadAttribute",
+        &MyUpdateProcThreadAttribute, (LPVOID *)&RawUpdateProcThreadAttribute, &ppUpdateProcThreadAttribute);
+    if (status == MH_OK)
+    {
+        MH_EnableHook(ppUpdateProcThreadAttribute);
+    }
+    else
+    {
+        DebugLog(L"MH_CreateHookApiEx UpdateProcThreadAttribute failed: %d", status);
     }
 }
