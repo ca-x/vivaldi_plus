@@ -320,7 +320,7 @@ auto GetSection(const wchar_t *name, const wchar_t *iniPath)
 // 设置ini文件section内容
 void SetSection(const wchar_t *name, std::vector <std::wstring> &values, const wchar_t *iniPath)
 {
-    FILE * fp = _wfopen_s(iniPath, L"r, ccs=UNICODE");
+    FILE * fp = _wfopen(iniPath, L"r, ccs=UNICODE");
     if (fp)
     {
         std::vector <std::wstring> contents;
