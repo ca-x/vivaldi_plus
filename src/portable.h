@@ -48,21 +48,26 @@ bool IsNeedPortable()
 
 std::wstring GetUserDataDir()
 {
-    std::wstring path = GetAppDir() + L"\\..\\Data";
+    TCHAR path[MAX_PATH];
+    ::GetModuleFileName(NULL, path, MAX_PATH);
+    std::wstring iniFilePath = std::wstring(path) + L"\\config.ini";
 
-    TCHAR temp[MAX_PATH];
-    ::PathCanonicalize(temp, path.data());
+    TCHAR userDataPath[MAX_PATH];
+    ::GetPrivateProfileStringW(L"opt", L"UserData", L"", userDataPath, MAX_PATH, iniFilePath.c_str());
 
-    return temp;
+    return std::wstring(userDataPath);
 }
+
 std::wstring GetDiskCacheDir()
 {
-    std::wstring path = GetAppDir() + L"\\..\\Cache";
+    TCHAR path[MAX_PATH];
+    ::GetModuleFileName(NULL, path, MAX_PATH);
+    std::wstring iniFilePath = std::wstring(path) + L"\\config.ini";
 
-    TCHAR temp[MAX_PATH];
-    ::PathCanonicalize(temp, path.data());
+    TCHAR cacheDirPath[MAX_PATH];
+    ::GetPrivateProfileStringW(L"opt", L"CacheDir", L"", cacheDirPath, MAX_PATH, iniFilePath.c_str());
 
-    return temp;
+    return std::wstring(cacheDirPath);
 }
 
 // 构造新命令行
