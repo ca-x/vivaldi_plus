@@ -254,18 +254,19 @@ std::wstring ExpandEnvironmentPath(const std::wstring &path)
     return std::wstring(&buffer[0], 0, expandedLength);
 }
 // 替换字符串
-void ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, const std::wstring &replace)
+bool ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, const std::wstring &replace)
 {
+    bool find = false;
     size_t pos = 0;
     while ((pos = subject.find(search, pos)) != std::wstring::npos)
     {
         subject.replace(pos, search.length(), replace);
         pos += replace.length();
+        find = true;
     }
+    return find;
 }
 
-void ReplaceStringInPlace(std::string &subject, const std::string &search, const std::string &replace)
-{
     size_t pos = 0;
     while ((pos = subject.find(search, pos)) != std::string::npos)
     {
