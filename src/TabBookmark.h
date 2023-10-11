@@ -322,85 +322,7 @@ bool IsOnTheTab(NodePtr top, POINT pt)
     }
     else
     {
-        // if (top) DebugLog(L"IsOnTheTab failed");
-    }
-    return flag;
-}
-
-LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-    static bool wheel_tab_ing = false;
-    static bool double_click_ing = false;
-
-    if (nCode != HC_ACTION)
-    {
-        return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
-    }
-
-    if (nCode == HC_ACTION)
-    {
-        PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
-
-        if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE)
-        {
-            return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
-        }
-
-        if (pmouse->dwExtraInfo == MAGIC_CODE)
-        {
-            // DebugLog(L"MAGIC_CODE %x", wParam);
-            goto next;
-        }
-
-        if (wParam == WM_RBUTTONUP && wheel_tab_ing)
-        {
-            // DebugLog(L"wheel_tab_ing");
-            wheel_tab_ing = false;
-            return 1;
-        }
-
-        // if (wParam == WM_MBUTTONDOWN)
-        //{
-        //     //DebugLog(L"wheel_tab_ing");
-        //     return 1;
-        // }
-        // if (wParam == WM_LBUTTONUP && double_click_ing)
-        //{
-        //     //DebugLog(L"double_click_ing");
-        //     double_click_ing = false;
-        //     return 1;
-        // }
-
-        if (wParam == WM_MOUSEWHEEL)
-        {
-            HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr TopContainerView = GetTopContainerView(hwnd);
-
-            PMOUSEHOOKSTRUCTEX pwheel = (PMOUSEHOOKSTRUCTEX)lParam;
-            int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
-
-            if (IsOnTheTab(TopContainerView, pmouse->pt) || IsPressed(VK_RBUTTON))
-            {
-                hwnd = GetTopWnd(hwnd);
-                if (zDelta > 0)
-                {
-                    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
-                }
-                else
-                {
-                    ExecuteCommand(IDC_SELECT_NEXT_TAB, hwnd);
-                }
-
-                wheel_tab_ing = true;
-                if (TopContainerView)
-                {
-                }
-                // DebugLog(L"WM_MOUSEWHEEL");
-                return 1;
-            }
-        }
-
-        if (wParam == WM_LBUTTONDBLCLK)
+        if (wParam == WM_RBUTTONUP && !IsPressed(VK_SHIFT) && GetUserPreference("RightClickCloseTab"))
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
@@ -412,13 +334,10 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             {
             }
 
-            // 双击关闭
             if (isOnOneTab)
             {
                 if (isOnlyOneTab)
                 {
-                    // DebugLog(L"keep_tab");
-                    // ExecuteCommand(IDC_NEW_TAB, hwnd);
                     ExecuteCommand(IDC_NEW_TAB);
                     ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
                     ExecuteCommand(IDC_CLOSE_TAB);
@@ -428,34 +347,8 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                     ExecuteCommand(IDC_CLOSE_TAB);
                 }
             }
+            return 1;
         }
-
-        if (wParam == WM_MBUTTONUP)
-        {
-            HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr TopContainerView = GetTopContainerView(hwnd);
-
-            bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
-            bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
-
-            if (TopContainerView)
-            {
-            }
-
-            if (isOnOneTab && isOnlyOneTab)
-            {
-                // DebugLog(L"keep_tab");
-                // ExecuteCommand(IDC_NEW_TAB, hwnd);
-                ExecuteCommand(IDC_NEW_TAB);
-                // ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-                // ExecuteCommand(IDC_CLOSE_TAB);
-            }
-        }
-    }
-next:
-    // DebugLog(L"CallNextHookEx %X", wParam);
-    return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
-}
 
 bool IsNeedKeep()
 {
