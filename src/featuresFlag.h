@@ -13,9 +13,7 @@ void ParseFeatureFlags()
 
     if (PathFileExists(configFilePath.c_str()))
     {
-        const wchar_t *lpFileName = configFilePath.c_str();
-
         // Read the config file.
-        EnableRightClickCloseTab = GetPrivateProfileIntW(L"features", L"right_click_close_tab", 1, lpFileName) == 1;
+        EnableRightClickCloseTab = GetPrivateProfileIntW(L"features", L"right_click_close_tab", 1, configFilePath.c_str()) == 1;
     }
 }
