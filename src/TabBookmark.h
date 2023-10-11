@@ -1,3 +1,4 @@
+#include "Config.h"
 #include <oleacc.h>
 #pragma comment(lib, "oleacc.lib")
 
@@ -518,6 +519,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 void TabBookmark()
 {
+    LoadConfig();
     mouse_hook = SetWindowsHookEx(WH_MOUSE, MouseProc, hInstance, GetCurrentThreadId());
     keyboard_hook = SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, hInstance, GetCurrentThreadId());
 }
