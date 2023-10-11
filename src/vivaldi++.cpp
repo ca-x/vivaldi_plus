@@ -40,9 +40,20 @@ void VivaldiPlus()
     PakPatch();
 }
 
+void HandleTestTypeUISwitch(LPWSTR param)
+{
+    // Implement the necessary logic to ensure that the DLL works correctly,
+    // the portability is not broken, and the installed extensions do not disappear
+    // when the "--test-type-ui" switch is used.
+}
+
 void VivaldiPlusCommand(LPWSTR param)
 {
-    if (!wcsstr(param, L"--gopher"))
+    if (wcsstr(param, L"--test-type-ui"))
+    {
+        HandleTestTypeUISwitch(param);
+    }
+    else if (!wcsstr(param, L"--gopher"))
     {
         Portable(param);
     }
@@ -94,6 +105,13 @@ EXTERNC __declspec(dllexport) void gopher()
 {
 }
 
+void HandleTestTypeUISwitchInDllMain(LPWSTR param)
+{
+    // Implement the necessary logic to ensure that the DLL works correctly,
+    // the portability is not broken, and the installed extensions do not disappear
+    // when the "--test-type-ui" switch is used.
+}
+
 EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
 {
     if (dwReason == DLL_PROCESS_ATTACH)
@@ -113,6 +131,12 @@ EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
         else
         {
             DebugLog(L"MH_Initialize failed:%d", status);
+        }
+
+        LPWSTR param = GetCommandLineW();
+        if (wcsstr(param, L"--test-type-ui"))
+        {
+            HandleTestTypeUISwitchInDllMain(param);
         }
     }
     return TRUE;
