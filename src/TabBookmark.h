@@ -327,8 +327,12 @@ bool IsOnTheTab(NodePtr top, POINT pt)
     return flag;
 }
 
+bool g_rightClickCloseTab = true; // Add this line at the top of the file
+
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
+    if (!g_rightClickCloseTab) return CallNextHookEx(mouse_hook, nCode, wParam, lParam); // Add this line
+
     static bool wheel_tab_ing = false;
     static bool double_click_ing = false;
 
@@ -357,6 +361,17 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             // DebugLog(L"wheel_tab_ing");
             wheel_tab_ing = false;
             return 1;
+        }
+        
+        if (wParam == WM_RBUTTONUP && !IsPressed(VK_SHIFT)) // Add this block
+        {
+            HWND hwnd = WindowFromPoint(pmouse->pt);
+            NodePtr TopContainerView = GetTopContainerView(hwnd);
+            if (IsOnOneTab(TopContainerView, pmouse->pt))
+            {
+                ExecuteCommand(IDC_CLOSE_TAB);
+                return 1;
+            }
         }
 
         // if (wParam == WM_MBUTTONDOWN)
