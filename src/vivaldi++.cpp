@@ -12,6 +12,7 @@ HMODULE hInstance;
 #include "hijack.h"
 #include "utils.h"
 #include "patch.h"
+#include "featuresFlag.h"
 #include "TabBookmark.h"
 #include "portable.h"
 #include "PakPatch.h"
@@ -25,6 +26,9 @@ void VivaldiPlus()
 {
     // 快捷方式
     SetAppId();
+
+    // 读取特性标志
+    ParseFeatureFlags();
 
     // 便携化补丁
     MakeGreen();
@@ -61,13 +65,13 @@ int Loader()
         VivaldiPlusCommand(param);
     }
 
-    //返回到主程序
+    // 返回到主程序
     return ExeMain();
 }
 
 void InstallLoader()
 {
-    //获取程序入口点
+    // 获取程序入口点
     MODULEINFO mi;
     GetModuleInformation(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(MODULEINFO));
     PBYTE entry = (PBYTE)mi.EntryPoint;

@@ -327,6 +327,23 @@ bool IsOnTheTab(NodePtr top, POINT pt)
     return flag;
 }
 
+bool IsNeedKeep()
+{
+    bool keep_tab = false;
+
+    NodePtr TopContainerView = GetTopContainerView(GetForegroundWindow());
+    if (IsOnlyOneTab(TopContainerView))
+    {
+        keep_tab = true;
+    }
+
+    if (TopContainerView)
+    {
+    }
+
+    return keep_tab;
+}
+
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     static bool wheel_tab_ing = false;
@@ -435,7 +452,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
-            if (!IsNeedKeep() && IsRightClickToCloseTab())
+            if (EnableRightClickCloseTab && !IsNeedKeep())
             {
                 ExecuteCommand(IDC_CLOSE_TAB);
                 return 1;
@@ -467,23 +484,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 next:
     // DebugLog(L"CallNextHookEx %X", wParam);
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
-}
-
-bool IsNeedKeep()
-{
-    bool keep_tab = false;
-
-    NodePtr TopContainerView = GetTopContainerView(GetForegroundWindow());
-    if (IsOnlyOneTab(TopContainerView))
-    {
-        keep_tab = true;
-    }
-
-    if (TopContainerView)
-    {
-    }
-
-    return keep_tab;
 }
 
 HHOOK keyboard_hook = NULL;
