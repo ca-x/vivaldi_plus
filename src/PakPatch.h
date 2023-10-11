@@ -48,12 +48,12 @@ HANDLE WINAPI MyMapViewOfFile(
                     // RemoveUpdateError
                     // if (IsNeedPortable())
                     {
-                        ReplaceStringInPlace(html, R"(hidden="[[!showUpdateStatus_]]")", R"(hidden="true")");
-                        ReplaceStringInPlace(html, R"(hidden="[[!shouldShowIcons_(showUpdateStatus_)]]")", R"(hidden="true")");
+                        changed |= ReplaceStringInPlace(html, R"(hidden="[[!showUpdateStatus_]]")", R"(hidden="true")");
+                        changed |= ReplaceStringInPlace(html, R"(hidden="[[!shouldShowIcons_(showUpdateStatus_)]]")", R"(hidden="true")");
                     }
 
                     const char prouct_title[] = u8R"({aboutBrowserVersion}</div><div class="secondary"><a target="_blank" href="https://github.com/czyt/vivaldi_plus">Vivaldi++</a> )" RELEASE_VER_STR u8R"( inside</div>)";
-                    ReplaceStringInPlace(html, R"({aboutBrowserVersion}</div>)", prouct_title);
+                    changed |= ReplaceStringInPlace(html, R"({aboutBrowserVersion}</div>)", prouct_title);
 
                     if (html.length() <= size)
                     {
