@@ -411,6 +411,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 wheel_tab_ing = true;
                 if (TopContainerView)
                 {
+                    TopContainerView->Release();
                 }
                 // DebugLog(L"WM_MOUSEWHEEL");
                 return 1;
@@ -427,6 +428,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
             if (TopContainerView)
             {
+                TopContainerView->Release();
             }
 
             // 双击关闭
@@ -455,6 +457,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             if (EnableRightClickCloseTab && !IsNeedKeep())
             {
                 ExecuteCommand(IDC_CLOSE_TAB);
+                SendKey(VK_MBUTTON);
                 return 1;
             }
         }
@@ -469,6 +472,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
             if (TopContainerView)
             {
+                TopContainerView->Release();
             }
 
             if (isOnOneTab && isOnlyOneTab)
