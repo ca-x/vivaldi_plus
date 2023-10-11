@@ -430,6 +430,18 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             }
         }
 
+        // 右键关闭标签页
+        if (wParam == WM_RBUTTONUP && !IsPressed(VK_SHIFT))
+        {
+            HWND hwnd = WindowFromPoint(pmouse->pt);
+            NodePtr TopContainerView = GetTopContainerView(hwnd);
+            if (!IsNeedKeep() && IsRightClickToCloseTab())
+            {
+                ExecuteCommand(IDC_CLOSE_TAB);
+                return 1;
+            }
+        }
+
         if (wParam == WM_MBUTTONUP)
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
