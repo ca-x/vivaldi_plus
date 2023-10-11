@@ -46,6 +46,10 @@ bool IsNeedPortable()
     return need_portable;
 }
 
+// GetUserDataDir retrieves the user data directory path from the config file.
+// It first tries to read the data dir from the "data" key in the "dir_setting" section.
+// If that fails, it falls back to a default relative to the app dir.
+// It expands any environment variables in the path.
 std::wstring GetUserDataDir()
 {
 
@@ -61,17 +65,18 @@ std::wstring GetUserDataDir()
 
     std::wstring finalPath = ExpandEnvironmentPath(userDataPath);
 
-    wchar_t dllFolder[MAX_PATH];
-    GetModuleFileNameW(NULL, dllFolder, MAX_PATH);
-    PathRemoveFileSpecW(dllFolder);
     // 扩展%app%
-    ReplaceStringInPlace(finalPath, L"%app%", dllFolder);
+    ReplaceStringInPlace(finalPath, L"%app%", GetAppDir());
 
     wcscpy(userDataPath, finalPath.c_str());
 
     return std::wstring(userDataPath);
 }
 
+// GetDiskCacheDir retrieves the disk cache directory path from the config file.
+// It first tries to read the cache dir from the "cache" key in the "dir_setting" section.
+// If that fails, it falls back to a default relative to the app dir.
+// It expands any environment variables in the path.
 std::wstring GetDiskCacheDir()
 {
 
@@ -87,11 +92,8 @@ std::wstring GetDiskCacheDir()
 
     std::wstring finalPath = ExpandEnvironmentPath(cacheDirPath);
 
-    wchar_t dllFolder[MAX_PATH];
-    GetModuleFileNameW(NULL, dllFolder, MAX_PATH);
-    PathRemoveFileSpecW(dllFolder);
     // 扩展%app%
-    ReplaceStringInPlace(finalPath, L"%app%", dllFolder);
+    ReplaceStringInPlace(finalPath, L"%app%", GetAppDir());
 
     wcscpy(cacheDirPath, finalPath.c_str());
 
@@ -99,6 +101,12 @@ std::wstring GetDiskCacheDir()
 }
 
 // 构造新命令行
+// Parses the command line param into individual arguments and inserts
+// additional arguments for portable mode.
+//
+// param: The command line passed to the application.
+//
+// Returns: The modified command line with additional args.
 std::wstring GetCommand(LPWSTR param)
 {
     std::vector<std::wstring> args;
