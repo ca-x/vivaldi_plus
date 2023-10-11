@@ -61,8 +61,11 @@ std::wstring GetUserDataDir()
 
     std::wstring finalPath = ExpandEnvironmentPath(userDataPath);
 
+    wchar_t dllFolder[MAX_PATH];
+    GetModuleFileNameW(NULL, dllFolder, MAX_PATH);
+    PathRemoveFileSpecW(dllFolder);
     // 扩展%app%
-    ReplaceStringInPlace(finalPath, L"%app%", GetAppDir());
+    ReplaceStringInPlace(finalPath, L"%app%", dllFolder);
 
     wcscpy(user_data_path, finalPath.c_str());
 
@@ -84,8 +87,11 @@ std::wstring GetDiskCacheDir()
 
     std::wstring finalPath = ExpandEnvironmentPath(cacheDirPath);
 
+    wchar_t dllFolder[MAX_PATH];
+    GetModuleFileNameW(NULL, dllFolder, MAX_PATH);
+    PathRemoveFileSpecW(dllFolder);
     // 扩展%app%
-    ReplaceStringInPlace(finalPath, L"%app%", GetAppDir());
+    ReplaceStringInPlace(finalPath, L"%app%", dllFolder);
 
     wcscpy(cacheDirPath, finalPath.c_str());
 
