@@ -328,8 +328,6 @@ bool IsOnTheTab(NodePtr top, POINT pt)
     return flag;
 }
 
-bool g_rightClickCloseTab = true; // Add this line at the top of the file
-
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     if (!g_rightClickCloseTab) return CallNextHookEx(mouse_hook, nCode, wParam, lParam); // Add this line
