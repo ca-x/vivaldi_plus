@@ -81,12 +81,13 @@ std::wstring GetUserDataDir()
     return std::wstring(userDataBuffer);
 }
 
-// GetDiskCacheDir retrieves the disk cache directory path from the config file.
-// It first tries to read the cache dir from the "cache" key in the "dir_setting" section.
-// If that fails, it falls back to a default relative to the app dir.
-// It expands any environment variables in the path.
-std::wstring GetDiskCacheDir()
+std::wstring GetDiskCacheDir(std::wstring customPath = L"")
 {
+    if (!customPath.empty() && PathFileExists(customPath.c_str()))
+    {
+        return customPath;
+    }
+
     std::wstring configFilePath = GetAppDir() + L"\\config.ini";
 
     if (!PathFileExists(configFilePath.c_str()))
@@ -121,6 +122,8 @@ std::wstring GetCommand(LPWSTR param)
     int argc;
     LPWSTR *argv = CommandLineToArgvW(param, &argc);
 
+    std::wstring customCacheDir;
+
     int insert_pos = 0;
     for (int i = 0; i < argc; i++)
     {
@@ -131,6 +134,10 @@ std::wstring GetCommand(LPWSTR param)
         if (wcscmp(argv[i], L"--single-argument") == 0)
         {
             break;
+        }
+        if (wcsncmp(argv[i], L"--disk-cache-dir=", 16) == 0)
+        {
+            customCacheDir = argv[i] + 16;
         }
         insert_pos = i;
     }
@@ -145,14 +152,14 @@ std::wstring GetCommand(LPWSTR param)
         {
             args.push_back(L"--gopher");
 
-            // args.push_back(L"--force-local-ntp");
-            // args.push_back(L"--disable-background-networking");
+            args.push_back(L"--force-local-ntp");
+            args.push_back(L"--disable-background-networking");
 
             args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
 
-            // if (IsNeedPortable())
+            if (!customCacheDir.empty())
             {
-                auto diskcache = GetDiskCacheDir();
+                auto diskcache = GetDiskCacheDir(customCacheDir);
 
                 wchar_t temp[MAX_PATH];
                 wsprintf(temp, L"--disk-cache-dir=%s", diskcache.c_str());
