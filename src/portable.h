@@ -46,16 +46,22 @@ bool IsNeedPortable()
     return need_portable;
 }
 
+bool IsCustomIniExist(){
+    std::wstring path = GetAppDir() + L"\\config.ini";
+    if (PathFileExists(path.data()))
+    {
+        return true;
+    }
+    return false;
+}
+
 // GetUserDataDir retrieves the user data directory path from the config file.
 // It first tries to read the data dir from the "data" key in the "dir_setting" section.
 // If that fails, it falls back to a default relative to the app dir.
 // It expands any environment variables in the path.
 std::wstring GetUserDataDir()
 {
-
-    std::wstring iniFilePath = GetAppDir() + L"\\config.ini";
-
-    if (!PathFileExists(iniFilePath.c_str()))
+    if (!IsCustomIniExist())
     {
         return GetAppDir() + L"\\..\\Data";
     }
@@ -79,10 +85,7 @@ std::wstring GetUserDataDir()
 // It expands any environment variables in the path.
 std::wstring GetDiskCacheDir()
 {
-
-    std::wstring iniFilePath = GetAppDir() + L"\\config.ini";
-
-    if (!PathFileExists(iniFilePath.c_str()))
+    if (!IsCustomIniExist())
     {
         return GetAppDir() + L"\\..\\Cache";
     }
