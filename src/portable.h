@@ -48,9 +48,8 @@ bool IsNeedPortable()
 
 std::wstring GetUserDataDir()
 {
-    TCHAR path[MAX_PATH];
-    ::GetModuleFileName(NULL, path, MAX_PATH);
-    std::wstring iniFilePath = std::wstring(path) + L"\\config.ini";
+
+    std::wstring iniFilePath = GetAppDir() + L"\\config.ini";
 
     if (!PathFileExists(iniFilePath.c_str()))
     {
@@ -58,16 +57,22 @@ std::wstring GetUserDataDir()
     }
 
     TCHAR userDataPath[MAX_PATH];
-    ::GetPrivateProfileStringW(L"opt", L"UserData", L"", userDataPath, MAX_PATH, iniFilePath.c_str());
+    ::GetPrivateProfileStringW(L"dir_setting", L"data", L"", userDataPath, MAX_PATH, iniFilePath.c_str());
+
+    std::wstring finalPath = ExpandEnvironmentPath(userDataPath);
+
+    // 扩展%app%
+    ReplaceStringInPlace(finalPath, L"%app%", GetAppDir());
+
+    wcscpy(user_data_path, finalPath.c_str());
 
     return std::wstring(userDataPath);
 }
 
 std::wstring GetDiskCacheDir()
 {
-    TCHAR path[MAX_PATH];
-    ::GetModuleFileName(NULL, path, MAX_PATH);
-    std::wstring iniFilePath = std::wstring(path) + L"\\config.ini";
+
+    std::wstring iniFilePath = GetAppDir() + L"\\config.ini";
 
     if (!PathFileExists(iniFilePath.c_str()))
     {
@@ -75,7 +80,14 @@ std::wstring GetDiskCacheDir()
     }
 
     TCHAR cacheDirPath[MAX_PATH];
-    ::GetPrivateProfileStringW(L"opt", L"CacheDir", L"", cacheDirPath, MAX_PATH, iniFilePath.c_str());
+    ::GetPrivateProfileStringW(L"dir_setting", L"cache", L"", cacheDirPath, MAX_PATH, iniFilePath.c_str());
+
+    std::wstring finalPath = ExpandEnvironmentPath(cacheDirPath);
+
+    // 扩展%app%
+    ReplaceStringInPlace(finalPath, L"%app%", GetAppDir());
+
+    wcscpy(cacheDirPath, finalPath.c_str());
 
     return std::wstring(cacheDirPath);
 }

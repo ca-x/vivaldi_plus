@@ -5,6 +5,13 @@
 - 按住右键时滚轮滚动标签栏
 - 便携设计，程序放在App目录，数据放在Data目录（不兼容原版数据，可以重装系统换电脑不丢数据）
 - 移除更新错误警告（因为是绿色版没有自动更新功能）
+# 自定义
+本dll提供有限的自定义选项，新建一个名为config.ini的文件到dll同目录即可。可以使用%app%来表示dll所在目录
+```
+[dir_setting]
+data=%app%/userData
+cache=%app%/cache
+```
 # 获取
 采用GitHub Actions自动编译发布，下载地址：[Powered by nightly.link](https://nightly.link/czyt/vivaldi_plus/workflows/build/main)
 

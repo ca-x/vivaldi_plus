@@ -208,7 +208,7 @@ void SendKey(T... keys)
     ::SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
 }
 
-//发送鼠标消息
+// 发送鼠标消息
 void SendOneMouse(int mouse)
 {
     // 交换左右键
@@ -239,6 +239,39 @@ bool isEndWith(const wchar_t *s, const wchar_t *sub)
     if (len2 > len1)
         return false;
     return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
+}
+
+// 展开环境路径比如 %windir%
+std::wstring ExpandEnvironmentPath(const std::wstring &path)
+{
+    std::vector<wchar_t> buffer(MAX_PATH);
+    size_t expandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0], (DWORD)buffer.size());
+    if (expandedLength > buffer.size())
+    {
+        buffer.resize(expandedLength);
+        expandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0], (DWORD)buffer.size());
+    }
+    return std::wstring(&buffer[0], 0, expandedLength);
+}
+// 替换字符串
+void ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, const std::wstring &replace)
+{
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::wstring::npos)
+    {
+        subject.replace(pos, search.length(), replace);
+        pos += replace.length();
+    }
+}
+
+void ReplaceStringInPlace(std::string &subject, const std::string &search, const std::string &replace)
+{
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos)
+    {
+        subject.replace(pos, search.length(), replace);
+        pos += replace.length();
+    }
 }
 
 // 压缩HTML
