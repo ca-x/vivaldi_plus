@@ -41,9 +41,8 @@ bool IsExistsPortable()
 
 bool IsNeedPortable()
 {
-    return true;
-    //    static bool need_portable = IsExistsPortable();
-    //    return need_portable;
+    static bool need_portable = IsExistsPortable();
+    return need_portable;
 }
 
 bool IsCustomIniExist()
@@ -136,35 +135,34 @@ std::wstring GetCommand(LPWSTR param)
     }
     for (int i = 0; i < argc; i++)
     {
-        // 保留原来参数
+        // Preserve original arguments
         if (i)
             args.push_back(argv[i]);
 
-        // 追加参数
+        // Append arguments
         if (i == insert_pos)
         {
             args.push_back(L"--gopher");
 
-            // args.push_back(L"--force-local-ntp");
-            // args.push_back(L"--disable-background-networking");
-
-            args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
-
-            // if (IsNeedPortable())
+            if (IsNeedPortable())
             {
+                args.push_back(L"--force-local-ntp");
+                args.push_back(L"--disable-background-networking");
+
                 auto diskcache = GetDiskCacheDir();
 
                 wchar_t temp[MAX_PATH];
                 wsprintf(temp, L"--disk-cache-dir=%s", diskcache.c_str());
                 args.push_back(temp);
-            }
-            {
+
                 auto userdata = GetUserDataDir();
 
-                wchar_t temp[MAX_PATH];
-                wsprintf(temp, L"--user-data-dir=%s", userdata.c_str());
-                args.push_back(temp);
+                wchar_t temp2[MAX_PATH];
+                wsprintf(temp2, L"--user-data-dir=%s", userdata.c_str());
+                args.push_back(temp2);
             }
+
+            args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
         }
     }
     LocalFree(argv);
