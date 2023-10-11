@@ -52,6 +52,11 @@ std::wstring GetUserDataDir()
     ::GetModuleFileName(NULL, path, MAX_PATH);
     std::wstring iniFilePath = std::wstring(path) + L"\\config.ini";
 
+    if (!PathFileExists(iniFilePath.c_str()))
+    {
+        return GetAppDir() + L"\\..\\Data";
+    }
+
     TCHAR userDataPath[MAX_PATH];
     ::GetPrivateProfileStringW(L"opt", L"UserData", L"", userDataPath, MAX_PATH, iniFilePath.c_str());
 
@@ -63,6 +68,11 @@ std::wstring GetDiskCacheDir()
     TCHAR path[MAX_PATH];
     ::GetModuleFileName(NULL, path, MAX_PATH);
     std::wstring iniFilePath = std::wstring(path) + L"\\config.ini";
+
+    if (!PathFileExists(iniFilePath.c_str()))
+    {
+        return GetAppDir() + L"\\..\\Cache";
+    }
 
     TCHAR cacheDirPath[MAX_PATH];
     ::GetPrivateProfileStringW(L"opt", L"CacheDir", L"", cacheDirPath, MAX_PATH, iniFilePath.c_str());
