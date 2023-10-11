@@ -44,7 +44,15 @@ void VivaldiPlusCommand(LPWSTR param)
 {
     if (!wcsstr(param, L"--gopher"))
     {
-        Portable(param);
+        if (!wcsstr(param, L"--test-type-ui"))
+        {
+            // Handle "--test-type-ui" switch here
+            // ...
+        }
+        else
+        {
+            Portable(param);
+        }
     }
     else
     {
@@ -62,7 +70,15 @@ int Loader()
     // DebugLog(L"param %s", param);
     if (!wcsstr(param, L"-type="))
     {
-        VivaldiPlusCommand(param);
+        if (!wcsstr(param, L"--test-type-ui"))
+        {
+            // Handle "--test-type-ui" switch here
+            // ...
+        }
+        else
+        {
+            VivaldiPlusCommand(param);
+        }
     }
 
     // 返回到主程序
@@ -78,6 +94,7 @@ void InstallLoader()
 
     // 入口点跳转到Loader
     MH_STATUS status = MH_CreateHook(entry, Loader, (LPVOID *)&ExeMain);
+}
     if (status == MH_OK)
     {
         MH_EnableHook(entry);
@@ -108,7 +125,17 @@ EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
         MH_STATUS status = MH_Initialize();
         if (status == MH_OK)
         {
-            InstallLoader();
+            // Check for "--test-type-ui" switch before installing loader
+            LPWSTR param = GetCommandLineW();
+            if (!wcsstr(param, L"--test-type-ui"))
+            {
+                InstallLoader();
+            }
+            else
+            {
+                // Handle "--test-type-ui" switch here
+                // ...
+            }
         }
         else
         {
