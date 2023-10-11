@@ -46,6 +46,16 @@ bool IsNeedPortable()
     return need_portable;
 }
 
+bool IsCustomIniExist()
+{
+    std::wstring path = GetAppDir() + L"\\config.ini";
+    if (PathFileExists(path.data()))
+    {
+        return true;
+    }
+    return false;
+}
+
 // GetUserDataDir retrieves the user data directory path from the config file.
 // It first tries to read the data dir from the "data" key in the "dir_setting" section.
 // If that fails, it falls back to a default relative to the app dir.
@@ -53,24 +63,24 @@ bool IsNeedPortable()
 std::wstring GetUserDataDir()
 {
 
-    std::wstring iniFilePath = GetAppDir() + L"\\config.ini";
+    std::wstring configFilePath = GetAppDir() + L"\\config.ini";
 
-    if (!PathFileExists(iniFilePath.c_str()))
+    if (!PathFileExists(configFilePath.c_str()))
     {
         return GetAppDir() + L"\\..\\Data";
     }
 
-    TCHAR userDataPath[MAX_PATH];
-    ::GetPrivateProfileStringW(L"dir_setting", L"data", L"", userDataPath, MAX_PATH, iniFilePath.c_str());
+    TCHAR userDataBuffer[MAX_PATH];
+    ::GetPrivateProfileStringW(L"dir_setting", L"data", L"", userDataBuffer, MAX_PATH, configFilePath.c_str());
 
-    std::wstring finalPath = ExpandEnvironmentPath(userDataPath);
+    std::wstring expandedPath = ExpandEnvironmentPath(userDataBuffer);
 
-    // 扩展%app%
-    ReplaceStringInPlace(finalPath, L"%app%", GetAppDir());
+    // Expand %app%
+    ReplaceStringInPlace(expandedPath, L"%app%", GetAppDir());
 
-    wcscpy(userDataPath, finalPath.c_str());
+    wcscpy(userDataBuffer, expandedPath.c_str());
 
-    return std::wstring(userDataPath);
+    return std::wstring(userDataBuffer);
 }
 
 // GetDiskCacheDir retrieves the disk cache directory path from the config file.
@@ -80,24 +90,24 @@ std::wstring GetUserDataDir()
 std::wstring GetDiskCacheDir()
 {
 
-    std::wstring iniFilePath = GetAppDir() + L"\\config.ini";
+    std::wstring configFilePath = GetAppDir() + L"\\config.ini";
 
-    if (!PathFileExists(iniFilePath.c_str()))
+    if (!PathFileExists(configFilePath.c_str()))
     {
         return GetAppDir() + L"\\..\\Cache";
     }
 
-    TCHAR cacheDirPath[MAX_PATH];
-    ::GetPrivateProfileStringW(L"dir_setting", L"cache", L"", cacheDirPath, MAX_PATH, iniFilePath.c_str());
+    TCHAR cacheDirBuffer[MAX_PATH];
+    ::GetPrivateProfileStringW(L"dir_setting", L"cache", L"", cacheDirBuffer, MAX_PATH, configFilePath.c_str());
 
-    std::wstring finalPath = ExpandEnvironmentPath(cacheDirPath);
+    std::wstring expandedPath = ExpandEnvironmentPath(cacheDirBuffer);
 
-    // 扩展%app%
-    ReplaceStringInPlace(finalPath, L"%app%", GetAppDir());
+    // Expand %app%
+    ReplaceStringInPlace(expandedPath, L"%app%", GetAppDir());
 
-    wcscpy(cacheDirPath, finalPath.c_str());
+    wcscpy(cacheDirBuffer, expandedPath.c_str());
 
-    return std::wstring(cacheDirPath);
+    return std::wstring(cacheDirBuffer);
 }
 
 // 构造新命令行
