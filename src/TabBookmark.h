@@ -457,7 +457,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             if (EnableRightClickCloseTab && !IsNeedKeep())
             {
                 ExecuteCommand(IDC_CLOSE_TAB);
-                SendKeys(VK_MBUTTON);
+                SendKey(VK_MBUTTON);
                 return 1;
             }
         }
