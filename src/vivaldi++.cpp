@@ -45,6 +45,20 @@ void HandleTestTypeUISwitch(LPWSTR param)
     // Implement the necessary logic to ensure that the DLL works correctly,
     // the portability is not broken, and the installed extensions do not disappear
     // when the "--test-type-ui" switch is used.
+    if (param != NULL && wcsstr(param, L"--test-type-ui"))
+    {
+        // Ensure DLL works correctly
+        // This is a placeholder implementation and may need to be customized based on the specific requirements of the DLL.
+        // TODO: Add code to ensure DLL works correctly
+
+        // Ensure portability is not broken
+        // This is a placeholder implementation and may need to be customized based on the specific requirements of the DLL.
+        // TODO: Add code to ensure portability is not broken
+
+        // Ensure installed extensions do not disappear
+        // This is a placeholder implementation and may need to be customized based on the specific requirements of the DLL.
+        // TODO: Add code to ensure installed extensions do not disappear
+    }
 }
 
 void VivaldiPlusCommand(LPWSTR param)
@@ -110,6 +124,20 @@ void HandleTestTypeUISwitchInDllMain(LPWSTR param)
     // Implement the necessary logic to ensure that the DLL works correctly,
     // the portability is not broken, and the installed extensions do not disappear
     // when the "--test-type-ui" switch is used.
+    if (param != NULL && wcsstr(param, L"--test-type-ui"))
+    {
+        // Ensure DLL works correctly
+        // This is a placeholder implementation and may need to be customized based on the specific requirements of the DLL.
+        // TODO: Add code to ensure DLL works correctly
+
+        // Ensure portability is not broken
+        // This is a placeholder implementation and may need to be customized based on the specific requirements of the DLL.
+        // TODO: Add code to ensure portability is not broken
+
+        // Ensure installed extensions do not disappear
+        // This is a placeholder implementation and may need to be customized based on the specific requirements of the DLL.
+        // TODO: Add code to ensure installed extensions do not disappear
+    }
 }
 
 EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
