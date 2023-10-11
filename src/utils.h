@@ -264,16 +264,6 @@ void ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, con
     }
 }
 
-void ReplaceStringInPlace(std::string &subject, const std::string &search, const std::string &replace)
-{
-    size_t pos = 0;
-    while ((pos = subject.find(search, pos)) != std::string::npos)
-    {
-        subject.replace(pos, search.length(), replace);
-        pos += replace.length();
-    }
-}
-
 // 压缩HTML
 std::string &ltrim(std::string &s)
 {
