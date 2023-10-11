@@ -411,7 +411,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 wheel_tab_ing = true;
                 if (TopContainerView)
                 {
-                    TopContainerView->Release();
+                    //TopContainerView->Release();
                 }
                 // DebugLog(L"WM_MOUSEWHEEL");
                 return 1;
@@ -428,7 +428,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
             if (TopContainerView)
             {
-                TopContainerView->Release();
+               // TopContainerView->Release();
             }
 
             // 双击关闭
@@ -472,7 +472,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
             if (TopContainerView)
             {
-                TopContainerView->Release();
+                //TopContainerView->Release();
             }
 
             if (isOnOneTab && isOnlyOneTab)
