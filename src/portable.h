@@ -42,8 +42,8 @@ bool IsExistsPortable()
 bool IsNeedPortable()
 {
     return true;
-    static bool need_portable = IsExistsPortable();
-    return need_portable;
+    //    static bool need_portable = IsExistsPortable();
+    //    return need_portable;
 }
 
 bool IsCustomIniExist()
@@ -62,9 +62,7 @@ bool IsCustomIniExist()
 // It expands any environment variables in the path.
 std::wstring GetUserDataDir()
 {
-
     std::wstring configFilePath = GetAppDir() + L"\\config.ini";
-
     if (!PathFileExists(configFilePath.c_str()))
     {
         return GetAppDir() + L"\\..\\Data";
@@ -89,7 +87,6 @@ std::wstring GetUserDataDir()
 // It expands any environment variables in the path.
 std::wstring GetDiskCacheDir()
 {
-
     std::wstring configFilePath = GetAppDir() + L"\\config.ini";
 
     if (!PathFileExists(configFilePath.c_str()))
