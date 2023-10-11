@@ -67,7 +67,7 @@ std::wstring GetUserDataDir()
     // 扩展%app%
     ReplaceStringInPlace(finalPath, L"%app%", dllFolder);
 
-    wcscpy(user_data_path, finalPath.c_str());
+    wcscpy(userDataPath, finalPath.c_str());
 
     return std::wstring(userDataPath);
 }
