@@ -48,6 +48,7 @@ bool IsNeedPortable()
 
 std::wstring GetUserDataDir()
 {
+    TCHAR user_data_path[MAX_PATH];
 
     std::wstring iniFilePath = GetAppDir() + L"\\config.ini";
 
