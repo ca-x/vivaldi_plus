@@ -458,11 +458,15 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             // 有多个标签时
             if (!IsNeedKeep())
             {
-                // 在标签上且启用了右键关闭标签功能
-                if (IsOnTheTab(TopContainerView, pmouse->pt) && EnableRightClickCloseTab)
+                // 在标签上且启用了右键关闭特性
+                if (EnableRightClickCloseTab)
                 {
-                    ExecuteCommand(IDC_CLOSE_TAB);
-                    return 1;
+                    if (IsOnTheTab(TopContainerView, pmouse->pt))
+                    {
+                        // ExecuteCommand(IDC_CLOSE_TAB);
+                        SendKey(VK_MBUTTON);
+                        return 1;
+                    }
                 }
             }
         }
