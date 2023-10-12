@@ -241,6 +241,14 @@ bool isEndWith(const wchar_t *s, const wchar_t *sub)
     return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
 }
 
+// 获得指定路径的绝对路径，如 "data/../Cache"
+std::wstring GetAbsolutePath(const std::wstring &path)
+{
+    wchar_t buffer[MAX_PATH];
+    ::GetFullPathNameW(path.c_str(), MAX_PATH, buffer, NULL);
+    return buffer;
+}
+
 // 展开环境路径比如 %windir%
 std::wstring ExpandEnvironmentPath(const std::wstring &path)
 {
