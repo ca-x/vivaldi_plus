@@ -5,7 +5,6 @@
 HMODULE hInstance;
 
 #define MAGIC_CODE 0x1603ABD9
-#define VK_W = 0x57;
 
 #include "MinHook.h"
 #include "version.h"

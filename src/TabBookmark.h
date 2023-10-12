@@ -463,7 +463,9 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 {
                     if (IsOnTheTab(TopContainerView, pmouse->pt))
                     {
-                        SendKey(VK_CONTROL, VK_W);
+                        // 发送 Control+W 组合键
+                        SendKey(VK_CONTROL, 'W');
+
                         return 1;
                     }
                 }
