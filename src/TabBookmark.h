@@ -455,14 +455,15 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
-
-            bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
-
-            if (isOnOneTab && EnableRightClickCloseTab && !IsNeedKeep())
+            // 有多个标签时
+            if (!IsNeedKeep())
             {
-                ExecuteCommand(IDC_CLOSE_TAB);
-
-                return 1;
+                // 在标签上且启用了右键关闭标签功能
+                if (IsOnTheTab(TopContainerView, pmouse->pt) && EnableRightClickCloseTab)
+                {
+                    ExecuteCommand(IDC_CLOSE_TAB);
+                    return 1;
+                }
             }
         }
 
