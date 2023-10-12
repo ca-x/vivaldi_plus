@@ -451,7 +451,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
         // 右键关闭标签页
 
-        if (wParam == WM_RBUTTONUP && !IsPressed(VK_SHIFT))
+        if (wParam == WM_RBUTTONDOWN && !IsPressed(VK_SHIFT))
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
