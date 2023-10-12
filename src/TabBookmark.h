@@ -348,6 +348,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     static bool wheel_tab_ing = false;
     static bool double_click_ing = false;
+    static bool close_tab_ing = false;
 
     bool close_tab = false;
     bool keep_tab = false;
@@ -423,20 +424,23 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             }
             else
             {
-                close_tab = true
+                close_tab = true;
             }
         }
 
         if (wParam == WM_MBUTTONUP)
         {
-
-            if (isOnOneTab && isOnlyOneTab)
+            if(close_tab_ing)
             {
-                // DebugLog(L"keep_tab");
-                // ExecuteCommand(IDC_NEW_TAB, hwnd);
-                ExecuteCommand(IDC_NEW_TAB);
-                // ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-                // ExecuteCommand(IDC_CLOSE_TAB);
+                close_tab_ing = false;
+            }
+            else
+            {
+                if(IsOnlyOneTab(TopContainerView))
+                {
+                    keep_tab = true;
+                    close_tab = true;
+                }
             }
         }
 
@@ -444,13 +448,13 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         {
             // 最后一个标签页要关闭，新建一个标签
             // 打开新标签页，发送ctrl+t
-            SendKeys(VK_CONTROL, 'T');
+            SendKey(VK_CONTROL, 'T');
         }
 
         if (close_tab)
         {
             // 发送中键消息，关闭标签
-            SendKeys(VK_MBUTTON);
+            SendKey(VK_MBUTTON);
             close_tab_ing = true;
             return 1;
         }
