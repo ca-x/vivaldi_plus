@@ -408,7 +408,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         }
 
         if (isOnOneTab && ((wParam == WM_LBUTTONDBLCLK) ||
-                           (wParam == WM_RBUTTONUP && EnableRightClickCloseTab && !IsPressed(VK_SHIFT))))
+                           (wParam == WM_RBUTTONDBLCLK && EnableRightClickCloseTab && !IsPressed(VK_SHIFT))))
         {
 
             close_tab = true;
