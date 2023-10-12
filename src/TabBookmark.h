@@ -460,8 +460,8 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
             if (isOnOneTab && EnableRightClickCloseTab && !IsNeedKeep())
             {
-                // ExecuteCommand(IDC_CLOSE_TAB);
-                SendKey(VK_MBUTTON);
+                ExecuteCommand(IDC_CLOSE_TAB);
+
                 return 1;
             }
         }
