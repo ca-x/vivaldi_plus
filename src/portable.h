@@ -76,7 +76,10 @@ std::wstring GetUserDataDir()
     // Expand %app%
     ReplaceStringInPlace(expandedPath, L"%app%", GetAppDir());
 
-    wcscpy(userDataBuffer, expandedPath.c_str());
+    std::wstring dataDir;
+    dataDir = GetAbsolutePath(expandedPath);
+
+    wcscpy(userDataBuffer, dataDir.c_str());
 
     return std::wstring(userDataBuffer);
 }
@@ -102,7 +105,9 @@ std::wstring GetDiskCacheDir()
     // Expand %app%
     ReplaceStringInPlace(expandedPath, L"%app%", GetAppDir());
 
-    wcscpy(cacheDirBuffer, expandedPath.c_str());
+    std::wstring cacheDir;
+    cacheDir = GetAbsolutePath(expandedPath);
+    wcscpy(cacheDirBuffer, cacheDir.c_str());
 
     return std::wstring(cacheDirBuffer);
 }
