@@ -427,7 +427,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             }
             else
             {
-                if (IsOnlyOneTab(TopContainerView))
+                if (isOnlyOneTab)
                 {
                     keep_tab = true;
                     close_tab = true;
