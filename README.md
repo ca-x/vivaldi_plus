@@ -9,8 +9,8 @@
 本dll提供有限的自定义选项（dll版本需要为1.5.7.0 +），新建一个名为config.ini的文件到dll同目录即可。可以使用%app%来表示dll所在目录
 ```
 [dir_setting]
-data=%app%/userData
-cache=%app%/cache
+data=%app%/../Data
+cache=%app%/../Cache
 [features]
 right_click_close_tab=1
 ```
