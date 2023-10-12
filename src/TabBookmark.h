@@ -348,6 +348,10 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     static bool wheel_tab_ing = false;
     static bool double_click_ing = false;
+    static bool close_tab_ing = false;
+
+    bool close_tab = false;
+    bool keep_tab = false;
 
     if (nCode != HC_ACTION)
     {
@@ -376,27 +380,17 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             return 1;
         }
 
-        // if (wParam == WM_MBUTTONDOWN)
-        //{
-        //     //DebugLog(L"wheel_tab_ing");
-        //     return 1;
-        // }
-        // if (wParam == WM_LBUTTONUP && double_click_ing)
-        //{
-        //     //DebugLog(L"double_click_ing");
-        //     double_click_ing = false;
-        //     return 1;
-        // }
+        HWND hwnd = WindowFromPoint(pmouse->pt);
+        NodePtr TopContainerView = GetTopContainerView(hwnd);
+        bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
+        bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
 
         if (wParam == WM_MOUSEWHEEL)
         {
-            HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr TopContainerView = GetTopContainerView(hwnd);
-
             PMOUSEHOOKSTRUCTEX pwheel = (PMOUSEHOOKSTRUCTEX)lParam;
             int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
 
-            if (IsOnTheTab(TopContainerView, pmouse->pt) || IsPressed(VK_RBUTTON))
+            if (isOnOneTab || IsPressed(VK_RBUTTON))
             {
                 hwnd = GetTopWnd(hwnd);
                 if (zDelta > 0)
@@ -409,89 +403,51 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 }
 
                 wheel_tab_ing = true;
-                if (TopContainerView)
-                {
-                    // TopContainerView->Release();
-                }
-                // DebugLog(L"WM_MOUSEWHEEL");
                 return 1;
             }
         }
 
-        if (wParam == WM_LBUTTONDBLCLK)
+        if (isOnOneTab && ((wParam == WM_LBUTTONDBLCLK) ||
+                           (wParam == WM_RBUTTONDBLCLK && EnableRightClickCloseTab && !IsPressed(VK_SHIFT))))
         {
-            HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr TopContainerView = GetTopContainerView(hwnd);
 
-            bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
-            bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
-
-            if (TopContainerView)
-            {
-                // TopContainerView->Release();
-            }
-
-            // 双击关闭
-            if (isOnOneTab)
-            {
-                if (isOnlyOneTab)
-                {
-                    // DebugLog(L"keep_tab");
-                    // ExecuteCommand(IDC_NEW_TAB, hwnd);
-                    ExecuteCommand(IDC_NEW_TAB);
-                    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-                    ExecuteCommand(IDC_CLOSE_TAB);
-                }
-                else
-                {
-                    ExecuteCommand(IDC_CLOSE_TAB);
-                }
-            }
+            close_tab = true;
         }
 
-        // 右键关闭标签页
-
-        if (wParam == WM_RBUTTONUP && !IsPressed(VK_SHIFT))
+        if (close_tab && isOnlyOneTab)
         {
-            HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr TopContainerView = GetTopContainerView(hwnd);
-            // 有多个标签时
-            if (!IsNeedKeep())
-            {
-                // 在标签上且启用了右键关闭特性
-                if (EnableRightClickCloseTab)
-                {
-                    if (IsOnTheTab(TopContainerView, pmouse->pt))
-                    {
-                        // ExecuteCommand(IDC_CLOSE_TAB);
-                        SendKey(VK_MBUTTON);
-                        return 1;
-                    }
-                }
-            }
+            keep_tab = true;
         }
 
         if (wParam == WM_MBUTTONUP)
         {
-            HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr TopContainerView = GetTopContainerView(hwnd);
-
-            bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
-            bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
-
-            if (TopContainerView)
+            if (close_tab_ing)
             {
-                // TopContainerView->Release();
+                close_tab_ing = false;
             }
-
-            if (isOnOneTab && isOnlyOneTab)
+            else
             {
-                // DebugLog(L"keep_tab");
-                // ExecuteCommand(IDC_NEW_TAB, hwnd);
-                ExecuteCommand(IDC_NEW_TAB);
-                // ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-                // ExecuteCommand(IDC_CLOSE_TAB);
+                if (isOnlyOneTab)
+                {
+                    keep_tab = true;
+                    close_tab = true;
+                }
             }
+        }
+
+        if (keep_tab)
+        {
+            // 最后一个标签页要关闭，新建一个标签
+            // 打开新标签页，发送ctrl+t
+            SendKey(VK_CONTROL, 'T');
+        }
+
+        if (close_tab)
+        {
+            // 发送中键消息，关闭标签
+            SendKey(VK_MBUTTON);
+            close_tab_ing = true;
+            return 1;
         }
     }
 next:
