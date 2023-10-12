@@ -463,8 +463,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 {
                     if (IsOnTheTab(TopContainerView, pmouse->pt))
                     {
-                        // ExecuteCommand(IDC_CLOSE_TAB);
-                        SendKey(VK_MBUTTON);
+                        SendKey(VK_CONTROL, VK_W);
                         return 1;
                     }
                 }
