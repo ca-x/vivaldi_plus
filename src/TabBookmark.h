@@ -380,15 +380,17 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             return 1;
         }
 
+        HWND hwnd = WindowFromPoint(pmouse->pt);
+        NodePtr TopContainerView = GetTopContainerView(hwnd);
+        bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
+        bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
+
         if (wParam == WM_MOUSEWHEEL)
         {
-            HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr TopContainerView = GetTopContainerView(hwnd);
-
             PMOUSEHOOKSTRUCTEX pwheel = (PMOUSEHOOKSTRUCTEX)lParam;
             int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
 
-            if (IsOnTheTab(TopContainerView, pmouse->pt) || IsPressed(VK_RBUTTON))
+            if (isOnOneTab || IsPressed(VK_RBUTTON))
             {
                 hwnd = GetTopWnd(hwnd);
                 if (zDelta > 0)
@@ -401,42 +403,31 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 }
 
                 wheel_tab_ing = true;
-                if (TopContainerView)
-                {
-                    // TopContainerView->Release();
-                }
-                // DebugLog(L"WM_MOUSEWHEEL");
                 return 1;
             }
         }
 
-        HWND hwnd = WindowFromPoint(pmouse->pt);
-        NodePtr TopContainerView = GetTopContainerView(hwnd);
-        bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
-        bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
-
-        if ((wParam == WM_LBUTTONDBLCLK && isOnOneTab) ||
-            (wParam == WM_RBUTTONUP && EnableRightClickCloseTab && !IsPressed(VK_SHIFT) && isOnOneTab))
+        if (isOnOneTab && ((wParam == WM_LBUTTONDBLCLK) ||
+                           (wParam == WM_RBUTTONUP && EnableRightClickCloseTab && !IsPressed(VK_SHIFT))))
         {
-            if (isOnlyOneTab)
-            {
-                keep_tab = true;
-            }
-            else
-            {
-                close_tab = true;
-            }
+
+            close_tab = true;
+        }
+
+        if (close_tab && isOnlyOneTab)
+        {
+            keep_tab = true;
         }
 
         if (wParam == WM_MBUTTONUP)
         {
-            if(close_tab_ing)
+            if (close_tab_ing)
             {
                 close_tab_ing = false;
             }
             else
             {
-                if(IsOnlyOneTab(TopContainerView))
+                if (IsOnlyOneTab(TopContainerView))
                 {
                     keep_tab = true;
                     close_tab = true;
