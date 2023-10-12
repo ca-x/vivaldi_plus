@@ -451,23 +451,30 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
         // 右键关闭标签页
 
-        if (wParam == WM_RBUTTONDOWN && !IsPressed(VK_SHIFT))
+        if (wParam == WM_RBUTTONUP && !IsPressed(VK_SHIFT))
         {
+
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
-            // 有多个标签时
-            if (!IsNeedKeep())
-            {
-                // 在标签上且启用了右键关闭特性
-                if (EnableRightClickCloseTab)
-                {
-                    if (IsOnTheTab(TopContainerView, pmouse->pt))
-                    {
-                        // 发送 Control+W 组合键
-                        SendKey(VK_CONTROL, 'W');
 
-                        return 1;
-                    }
+            bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
+            bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
+
+            if (isOnOneTab && EnableRightClickCloseTab)
+            {
+                if (isOnlyOneTab)
+                {
+                    ExecuteCommand(IDC_NEW_TAB);
+                    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+                    ExecuteCommand(IDC_CLOSE_TAB);
+                    // 发送 Control+W 组合键
+                    //SendKey(VK_CONTROL, 'W');
+                }
+                else
+                {
+                    ExecuteCommand(IDC_CLOSE_TAB);
+                    // 发送 Control+W 组合键
+                    //SendKey(VK_CONTROL, 'W');
                 }
             }
         }
