@@ -398,6 +398,13 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
     {
         PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
 
+        if (wParam == WM_RBUTTONUP && wheel_tab_ing)
+        {
+            // DebugLog(L"wheel_tab_ing");
+            wheel_tab_ing = false;
+            return 1;
+        }
+
         if (wParam == WM_MOUSEMOVE)
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
@@ -425,13 +432,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         {
             // DebugLog(L"MAGIC_CODE %x", wParam);
             goto next;
-        }
-
-        if (wParam == WM_RBUTTONUP && wheel_tab_ing)
-        {
-            // DebugLog(L"wheel_tab_ing");
-            wheel_tab_ing = false;
-            return 1;
         }
 
         HWND hwnd = WindowFromPoint(pmouse->pt);
