@@ -185,8 +185,7 @@ NodePtr GetTopContainerView(HWND hwnd)
             }
             if (!TopContainerView)
             {
-                DebugLog(L"FindTopContainerView failed");
-            }
+                }
         }
     }
     return TopContainerView;
@@ -199,7 +198,6 @@ NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0)
     {
         int i = 0;
         TraversalAccessible(parent, [&element, &role, &i, &skipcount](NodePtr child) {
-            // DebugLog(L"当前 %d,%d", i, skipcount);
             if (GetAccessibleRole(child) == role)
             {
                 if (i == skipcount)
@@ -266,8 +264,7 @@ bool IsOnOneTab(NodePtr top, POINT pt)
     }
     else
     {
-        // if (top) DebugLog(L"IsOnOneTab failed");
-    }
+        }
     return flag;
 }
 
@@ -277,7 +274,6 @@ bool IsOnlyOneTab(NodePtr top)
     NodePtr PageTabList = FindPageTabList(top);
     if (PageTabList)
     {
-        // DebugLog(L"IsOnlyOneTab");
         long tab_count = 0;
 
         NodePtr PageTab = FindPageTab(PageTabList);
@@ -296,12 +292,10 @@ bool IsOnlyOneTab(NodePtr top)
                 });
             }
         }
-        // DebugLog(L"closing %d,%d", closing, tab_count);
         return tab_count <= 1;
     }
     else
     {
-        // if (top) DebugLog(L"IsOnlyOneTab failed");
     }
     return false;
 }
@@ -322,8 +316,7 @@ bool IsOnTheTab(NodePtr top, POINT pt)
     }
     else
     {
-        // if (top) DebugLog(L"IsOnTheTab failed");
-    }
+        }
     return flag;
 }
 
@@ -369,13 +362,11 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
         if (pmouse->dwExtraInfo == MAGIC_CODE)
         {
-            // DebugLog(L"MAGIC_CODE %x", wParam);
             goto next;
         }
 
         if (wParam == WM_RBUTTONUP && wheel_tab_ing)
         {
-            // DebugLog(L"wheel_tab_ing");
             wheel_tab_ing = false;
             return 1;
         }
@@ -408,7 +399,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         }
 
         if (isOnOneTab && ((wParam == WM_LBUTTONDBLCLK) ||
-                           (wParam == WM_RBUTTONDBLCLK && EnableRightClickCloseTab && !IsPressed(VK_SHIFT))))
+                           (wParam == WM_RBUTTONDBLCLK && EnableRightClickCloseTab && !IsPressed(VK_SHIFT) && !isOnlyOneTab)))
         {
 
             close_tab = true;
@@ -447,7 +438,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         }
     }
 next:
-    // DebugLog(L"CallNextHookEx %X", wParam);
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
 }
 
