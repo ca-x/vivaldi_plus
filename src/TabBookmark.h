@@ -540,6 +540,7 @@ LRESULT CALLBACK MessageProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     if (nCode == HC_ACTION)
     {
+        PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
         MSG *msg = (MSG *)lParam;
         if (msg->message == WM_MOUSEHOVER)
         {
