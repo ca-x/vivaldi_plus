@@ -271,6 +271,41 @@ bool IsOnOneTab(NodePtr top, POINT pt)
     return flag;
 }
 
+// 鼠标是否在某个未激活标签上
+bool IsOnOneInactiveTab(IAccessible *top, POINT pt)
+{
+    bool flag = false;
+    NodePtr PageTabList = FindPageTabList(top);
+    if (PageTabList)
+    {
+        NodePtr PageTab = FindPageTab(PageTabList);
+        if (PageTab)
+        {
+            NodePtr PageTabPane = GetParentElement(PageTab);
+            if (PageTabPane)
+            {
+                TraversalAccessible(PageTabPane, [&flag, &pt](NodePtr child) {
+                    if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB && !(GetAccessibleState(child) & STATE_SYSTEM_SELECTED))
+                    {
+                        GetAccessibleSize(child, [&flag, &pt](RECT rect) {
+                            if (PtInRect(&rect, pt))
+                            {
+                                flag = true;
+                            }
+                        });
+                    }
+                    return flag;
+                });
+            }
+        }
+    }
+    else
+    {
+        // if (top) DebugLog(L"IsOnOneTab failed");
+    }
+    return flag;
+}
+
 // 是否只有一个标签
 bool IsOnlyOneTab(NodePtr top)
 {
