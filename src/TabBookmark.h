@@ -344,7 +344,6 @@ bool IsNeedKeep()
     return keep_tab;
 }
 
-bool ignore_mouse_event = false;
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     static bool wheel_tab_ing = false;
@@ -362,34 +361,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
     if (nCode == HC_ACTION)
     {
         PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
-
-        if (wParam == WM_RBUTTONDOWN)
-        {
-            if (!ignore_mouse_event)
-            {
-                return 1;
-            }
-        }
-        if (wParam == WM_RBUTTONUP)
-        {
-            if (!ignore_mouse_event)
-            {
-                ignore_mouse_event = true;
-                SendOneMouse(MOUSEEVENTF_RIGHTDOWN);
-                SendOneMouse(MOUSEEVENTF_RIGHTUP);
-                return 1;
-            }
-            ignore_mouse_event = false;
-        }
-
-        if (ignore_mouse_event)
-        {
-            if (wParam == WM_LBUTTONDBLCLK)
-            {
-                ignore_mouse_event = false;
-                return 1;
-            }
-        }
 
         if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE)
         {
@@ -413,7 +384,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         NodePtr TopContainerView = GetTopContainerView(hwnd);
         bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
         bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
-
+        // 鼠标滚动事件
         if (wParam == WM_MOUSEWHEEL)
         {
             PMOUSEHOOKSTRUCTEX pwheel = (PMOUSEHOOKSTRUCTEX)lParam;
@@ -435,9 +406,10 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 return 1;
             }
         }
-
-        if (isOnOneTab && ((wParam == WM_LBUTTONDBLCLK) || (EnableRightClickCloseTab &&
-                                                            !isOnlyOneTab && wParam == WM_RBUTTONUP && !IsPressed(VK_SHIFT))))
+        // 在标签栏上 且为双击或右键
+        if (isOnOneTab && ((wParam == WM_LBUTTONDBLCLK) ||
+                           (EnableRightClickCloseTab && !isOnlyOneTab &&
+                            wParam == WM_RBUTTONUP && !IsPressed(VK_SHIFT))))
         {
 
             close_tab = true;
