@@ -344,6 +344,7 @@ bool IsNeedKeep()
     return keep_tab;
 }
 
+bool ignore_mouse_event = false;
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     static bool wheel_tab_ing = false;
@@ -361,6 +362,34 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
     if (nCode == HC_ACTION)
     {
         PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
+
+        if (wParam == WM_RBUTTONDOWN)
+        {
+            if (!ignore_mouse_event)
+            {
+                return 1;
+            }
+        }
+        if (wParam == WM_RBUTTONUP)
+        {
+            if (!ignore_mouse_event)
+            {
+                ignore_mouse_event = true;
+                SendOneMouse(MOUSEEVENTF_RIGHTDOWN);
+                SendOneMouse(MOUSEEVENTF_RIGHTUP);
+                return 1;
+            }
+            ignore_mouse_event = false;
+        }
+
+        if (ignore_mouse_event)
+        {
+            if (wParam == WM_LBUTTONDBLCLK)
+            {
+                ignore_mouse_event = false;
+                return 1;
+            }
+        }
 
         if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE)
         {
