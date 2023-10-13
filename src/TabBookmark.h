@@ -444,6 +444,8 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         if (close_tab)
         {
             ExecuteCommand(IDC_CLOSE_TAB);
+            close_tab_ing = true;
+            return 1;
         }
     }
 next:
