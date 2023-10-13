@@ -437,17 +437,13 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
         if (keep_tab)
         {
-            // 最后一个标签页要关闭，新建一个标签
-            // 打开新标签页，发送ctrl+t
-            SendKey(VK_CONTROL, 'T');
+            ExecuteCommand(IDC_NEW_TAB);
+            ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
         }
 
         if (close_tab)
         {
-            // 发送中键消息，关闭标签
-            SendKey(VK_MBUTTON);
-            close_tab_ing = true;
-            return 1;
+            ExecuteCommand(IDC_CLOSE_TAB);
         }
     }
 next:
