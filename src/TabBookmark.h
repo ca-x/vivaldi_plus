@@ -74,7 +74,6 @@ void TraversalAccessible(NodePtr node, Function f)
                 }
             }
         }
-        free(varChildren);
     }
 }
 
@@ -106,7 +105,6 @@ void TraversalRawAccessible(NodePtr node, Function f)
                 }
             }
         }
-        free(varChildren);
     }
 }
 
