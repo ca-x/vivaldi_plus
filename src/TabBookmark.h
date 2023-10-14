@@ -375,8 +375,6 @@ bool IsNeedKeep()
     return keep_tab;
 }
 
-std::map<HWND, bool> tracking_hwnd;
-
 HHOOK mouse_hook = NULL;
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
@@ -401,23 +399,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             // DebugLog(L"wheel_tab_ing");
             wheel_tab_ing = false;
             return 1;
-        }
-
-        if (wParam == WM_MOUSEMOVE)
-        {
-            HWND hwnd = WindowFromPoint(pmouse->pt);
-            if (tracking_hwnd.find(hwnd) == tracking_hwnd.end())
-            {
-                TRACKMOUSEEVENT MouseEvent;
-                MouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
-                MouseEvent.dwFlags = TME_HOVER | TME_LEAVE;
-                MouseEvent.hwndTrack = hwnd;
-                MouseEvent.dwHoverTime = HOVER_DEFAULT;
-                if (::TrackMouseEvent(&MouseEvent))
-                {
-                    tracking_hwnd[hwnd] = true;
-                }
-            }
         }
 
         if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE)
@@ -533,35 +514,8 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     return CallNextHookEx(keyboard_hook, nCode, wParam, lParam);
 }
 
-HHOOK message_hook = NULL;
-LRESULT CALLBACK MessageProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-    if (nCode == HC_ACTION)
-    {
-        PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
-        MSG *msg = (MSG *)lParam;
-        if (msg->message == WM_MOUSEHOVER)
-        {
-            HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr TopContainerView = GetTopContainerView(hwnd);
-            if (IsOnOneInactiveTab(TopContainerView, msg->pt))
-            {
-                SendOneMouse(MOUSEEVENTF_LEFTDOWN);
-                SendOneMouse(MOUSEEVENTF_LEFTUP);
-            }
-
-            tracking_hwnd.erase(msg->hwnd);
-        }
-        else if (msg->message == WM_MOUSELEAVE)
-        {
-            tracking_hwnd.erase(msg->hwnd);
-        }
-    }
-    return CallNextHookEx(message_hook, nCode, wParam, lParam);
-}
 void TabBookmark()
 {
     mouse_hook = SetWindowsHookEx(WH_MOUSE, MouseProc, hInstance, GetCurrentThreadId());
     keyboard_hook = SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, hInstance, GetCurrentThreadId());
-    message_hook = SetWindowsHookEx(WH_GETMESSAGE, MessageProc, hInstance, GetCurrentThreadId());
 }
