@@ -52,8 +52,8 @@ void TraversalAccessible(NodePtr node, Function f)
     long childCount = 0;
     if (node && S_OK == node->get_accChildCount(&childCount) && childCount)
     {
-        VARIANT *varChildren = (VARIANT *)malloc(sizeof(VARIANT) * childCount);
-        if (S_OK == AccessibleChildren(node.Get(), 0, childCount, varChildren, &childCount))
+        std::unique_ptr<VARIANT[]> varChildren(new VARIANT[childCount]);
+        if (S_OK == AccessibleChildren(node.Get(), 0, childCount, varChildren.get(), &childCount))
         {
             for (int i = 0; i < childCount; i++)
             {
@@ -84,8 +84,8 @@ void TraversalRawAccessible(NodePtr node, Function f)
     long childCount = 0;
     if (node && S_OK == node->get_accChildCount(&childCount) && childCount)
     {
-        VARIANT *varChildren = (VARIANT *)malloc(sizeof(VARIANT) * childCount);
-        if (S_OK == AccessibleChildren(node.Get(), 0, childCount, varChildren, &childCount))
+        std::unique_ptr<VARIANT[]> varChildren(new VARIANT[childCount]);
+        if (S_OK == AccessibleChildren(node.Get(), 0, childCount, varChildren.get(), &childCount))
         {
             for (int i = 0; i < childCount; i++)
             {
