@@ -15,7 +15,7 @@ cache=%app%\..\Cache
 right_click_close_tab=1
 ```
 # 获取
-采用GitHub Actions自动编译发布，下载地址：[Powered by nightly.link](https://nightly.link/czyt/vivaldi_plus/workflows/build/main)
+采用GitHub Actions自动编译发布，下载地址：[Powered by nightly.link](https://nightly.link/ca-x/vivaldi_plus/workflows/build/main)
 
 [![build status](https://github.com/czyt/vivaldi_plus/actions/workflows/build.yml/badge.svg)](https://github.com/czyt/vivaldi_plus/actions/workflows/build.yml)
 # 安装
