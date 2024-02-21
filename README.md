@@ -14,6 +14,8 @@ cache=%app%\..\Cache
 [features]
 right_click_close_tab=1
 ```
+# vivaldi 安装包
+请访问 https://vivaldi.czyt.tech 获取下载链接
 # 获取
 采用GitHub Actions自动编译发布，下载地址：[Powered by nightly.link](https://nightly.link/ca-x/vivaldi_plus/workflows/build/main)
 
