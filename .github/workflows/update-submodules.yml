@@ -2,23 +2,35 @@ name: Update Submodules
 
 on:
   schedule:
+    # 每6小时执行一次
     - cron:  '0 */6 * * *'
+  push:
+    # 当main分支有新的推送时执行
+    branches:
+      - main
+
 
 jobs:
   update:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout the repository
         uses: actions/checkout@v2
         with:
-          # 确保拉取子模块
+          # 确保拉取所有子模块
           submodules: 'recursive'
-
+          
       - name: Update Submodules
         run: |
           git submodule update --remote --recursive
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -am "Automatically update submodules"
-          git push
+          
+          # 仅当子模块发生变化时继续操作
+          SUBMODULES_CHANGED=$(git status --porcelain=v1 2>/dev/null | grep "^ M")
+          if [ "x$SUBMODULES_CHANGED" != "x" ]; then
+            git commit -am "Automatically update submodules"
+            git push
+          else
+            echo "No changes in submodules."
