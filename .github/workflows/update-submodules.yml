@@ -25,12 +25,17 @@ jobs:
           git submodule update --remote --recursive
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-
-          # 仅当子模块发生变化时继续操作
+          
+          # Check if submodules have changed
           SUBMODULES_CHANGED=$(git status --porcelain=v1 2>/dev/null | grep "^ M")
           if [ "x$SUBMODULES_CHANGED" != "x" ]; then
+            # Create a new branch
+            git checkout -b update-submodules-${{ github.run_id }}
             git commit -am "Automatically update submodules"
-            git push
+          
+            # Push the branch and create a pull request
+            git push --set-upstream origin update-submodules-${{ github.run_id }}
+            gh pr create --title "Auto-update submodules" --body "Automated changes to update submodules" --head update-submodules-${{ github.run_id }} --base main
           else
             echo "No changes in submodules."
-          fi  
+          fi
