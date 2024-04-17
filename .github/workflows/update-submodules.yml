@@ -1,0 +1,24 @@
+   name: Update Submodules
+
+   on:
+     schedule:
+       - cron:  '0 */6 * * *'
+
+   jobs:
+     update:
+       runs-on: ubuntu-latest
+
+       steps:
+         - name: Checkout
+           uses: actions/checkout@v2
+           with:
+             # 确保拉取子模块
+             submodules: 'recursive'
+
+         - name: Update Submodules
+           run: |
+             git submodule update --remote --recursive
+             git config --local user.email "action@github.com"
+             git config --local user.name "GitHub Action"
+             git commit -am "Automatically update submodules"
+             git push
