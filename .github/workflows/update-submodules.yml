@@ -19,7 +19,17 @@ jobs:
         with:
           # 确保拉取所有子模块
           submodules: 'recursive'
-
+          
+      - name: setup-gh
+        # You may pin to the exact commit or the version.
+        # uses: wusatosi/setup-gh@7dae6c8246092454793fe35dd4d5a9e8bf8ed34d
+        uses: wusatosi/setup-gh@v1.1
+        with:
+          # Repository setting for Github CLI
+          repository: ${{ github.repository }}
+          # Authentication token setting for Github CLI
+          token: ${{ github.token }}
+          
       - name: Update Submodules
         run: |
           git submodule update --remote --recursive
