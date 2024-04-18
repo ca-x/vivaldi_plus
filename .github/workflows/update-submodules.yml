@@ -29,6 +29,10 @@ jobs:
           repository: ${{ github.repository }}
           # Authentication token setting for Github CLI
           token: ${{ github.token }}
+
+      - name: Init Submodules
+        run: |
+          git submodule init
           
       - name: Update Submodules
         run: |
