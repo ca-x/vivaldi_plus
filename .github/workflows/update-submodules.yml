@@ -43,6 +43,10 @@ jobs:
           # Track submodule changes
           git status
           git diff --submodule
+
+          git config --global user.email "czyt.go@gmail.com"
+          git config --global user.name "czyt"
+          
           git add .
       
           # Conditional commit and push if there are changes
