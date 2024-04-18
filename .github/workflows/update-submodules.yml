@@ -2,7 +2,7 @@ name: Update Submodules
 
 on:
   schedule:
-    # 每3小时执行一次
+    # 每6小时执行一次
     - cron:  '0 */6 * * *'
   push:
     # 当main分支有新的推送时执行
@@ -32,19 +32,25 @@ jobs:
           
       - name: Update Submodules
         run: |
+          echo "update submodule"
           git submodule update --remote --recursive
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
+          echo "check submodule is changed or not"
           # Check if submodules have changed
           SUBMODULES_CHANGED=$(git status --porcelain=v1 2>/dev/null | grep "^ M")
           if [ "x$SUBMODULES_CHANGED" != "x" ]; then
+             echo "submodule is changed ,create new branch"
             # Create a new branch
             git checkout -b update-submodules-${{ github.run_id }}
+             echo "commit change to the new branch"
             git commit -am "Automatically update submodules"
           
             # Push the branch and create a pull request
+             echo "push the new branch update-submodules-${{ github.run_id }}"
             git push --set-upstream origin update-submodules-${{ github.run_id }}
+            echo "create a PR"
             gh pr create --title "Auto-update submodules" --body "Automated changes to update submodules" --head update-submodules-${{ github.run_id }} --base main
           else
             echo "No changes in submodules."
