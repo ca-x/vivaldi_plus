@@ -47,17 +47,20 @@ jobs:
           git config --global user.email "czyt.go@gmail.com"
           git config --global user.name "czyt"
           
-          git add .
+          # First, add any submodule changes.
+          git add . || true # The '|| true' ensures that even if this command fails, the script will continue.
       
-          # Conditional commit and push if there are changes
-          if git diff --cached ; then
-            echo "Submodule is changed, create new branch"
+          # Now, check if there are changes to commit. We use git diff-index HEAD -- here to check for changes as compared to the last commit.
+          if git diff-index --quiet HEAD --; then
+            # If there are no changes then the --quiet flag will make sure the command exits with 0 and this block will be executed.
+            echo "No changes in submodules to commit."
+          else
+            # If there are changes this block will be executed.
+            echo "Submodule is changed, creating new branch"
             git checkout -b update-submodules-${{ github.run_id }}
             git commit -m "Automatically update submodules"
             echo "Push the new branch update-submodules-${{ github.run_id }}"
             git push --set-upstream origin update-submodules-${{ github.run_id }}
             echo "Create a PR"
             gh pr create --title "Auto-update submodules" --body "Automated changes to update submodules" --head update-submodules-${{ github.run_id }} --base main
-          else
-            echo "No changes in submodules to commit."
           fi
