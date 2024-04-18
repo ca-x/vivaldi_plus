@@ -36,26 +36,24 @@ jobs:
           
       - name: Update Submodules
         run: |
-          echo "update submodule"
+          echo "Update submodule"
           git submodule update --remote --recursive
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          echo "check submodule is changed or not"
-          # Check if submodules have changed
-          SUBMODULES_CHANGED=$(git submodule foreach --recursive 'git ls-files -m | grep . && echo "changed" || :')
-          if [ "x$SUBMODULES_CHANGED" != "x" ]; then
-             echo "submodule is changed ,create new branch"
-            # Create a new branch
+      
+          echo "Check if submodule is changed or not"
+          # Track submodule changes
+          git status
+          git diff --submodule
+          git add .
+      
+          # Conditional commit and push if there are changes
+          if git diff --cached ; then
+            echo "Submodule is changed, create new branch"
             git checkout -b update-submodules-${{ github.run_id }}
-             echo "commit change to the new branch"
-            git commit -am "Automatically update submodules"
-          
-            # Push the branch and create a pull request
-             echo "push the new branch update-submodules-${{ github.run_id }}"
+            git commit -m "Automatically update submodules"
+            echo "Push the new branch update-submodules-${{ github.run_id }}"
             git push --set-upstream origin update-submodules-${{ github.run_id }}
-            echo "create a PR"
+            echo "Create a PR"
             gh pr create --title "Auto-update submodules" --body "Automated changes to update submodules" --head update-submodules-${{ github.run_id }} --base main
           else
-            echo "No changes in submodules."
+            echo "No changes in submodules to commit."
           fi
