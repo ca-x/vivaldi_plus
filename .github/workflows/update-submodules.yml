@@ -39,7 +39,7 @@ jobs:
           
           echo "check submodule is changed or not"
           # Check if submodules have changed
-          SUBMODULES_CHANGED=$(git status --porcelain=v1 2>/dev/null | grep "^ M")
+          SUBMODULES_CHANGED=$(git submodule foreach --recursive 'git ls-files -m | grep . && echo "changed"' | grep "changed")
           if [ "x$SUBMODULES_CHANGED" != "x" ]; then
              echo "submodule is changed ,create new branch"
             # Create a new branch
