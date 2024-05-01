@@ -11,8 +11,6 @@
 [dir_setting]
 data=%app%\..\Data
 cache=%app%\..\Cache
-[features]
-right_click_close_tab=1
 ```
 # vivaldi 安装包
 请访问 https://vivaldi.czyt.tech 获取下载链接
