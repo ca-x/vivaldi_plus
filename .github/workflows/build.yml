@@ -11,10 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        include: [
-            { name: windows_x86, arch: x86 },
-            { name: windows_x64, arch: x64 },
-        ]
+        include: [{ name: windows_x86, arch: x86 },{ name: windows_x64, arch: x64 }]
 
     name: ${{ matrix.name }}
 
@@ -22,7 +19,7 @@ jobs:
 
     steps:
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: 'true'
 
@@ -40,7 +37,7 @@ jobs:
       run: xmake
 
     - name: upload
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}
         path: build/release
