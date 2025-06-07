@@ -1,3 +1,4 @@
+[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
 # 功能
 - 双击鼠标中键关闭标签页
 - 保留最后标签页（防止关闭最后一个标签页时关闭浏览器，点X不行）
