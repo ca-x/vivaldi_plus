@@ -2,10 +2,8 @@ name: build
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  release:
+    types: [created, published]
 
 jobs:
   build:
@@ -36,8 +34,21 @@ jobs:
     - name: build
       run: xmake
 
-    - name: upload
+    - name: package
+      run: |
+        cd build/release
+        7z a ../../${{ matrix.name }}.zip version.dll
+
+    - name: upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}
-        path: build/release
+        path: ${{ matrix.name }}.zip
+
+    - name: upload to release
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ matrix.name }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
