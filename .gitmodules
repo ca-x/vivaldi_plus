@@ -1,6 +1,3 @@
 [submodule "minhook"]
 	path = minhook
 	url = https://github.com/ca-x/minhook
-[submodule "mini_gzip"]
-	path = mini_gzip
-	url = https://github.com/ca-x/mini_gzip

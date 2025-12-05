@@ -15,7 +15,6 @@ HMODULE hInstance;
 #include "featuresFlag.h"
 #include "TabBookmark.h"
 #include "portable.h"
-#include "PakPatch.h"
 #include "appid.h"
 #include "green.h"
 
@@ -35,9 +34,6 @@ void VivaldiPlus()
 
     // 标签页，书签，地址栏增强
     TabBookmark();
-
-    // 给pak文件打补丁
-    PakPatch();
 }
 
 void VivaldiPlusCommand(LPWSTR param)
