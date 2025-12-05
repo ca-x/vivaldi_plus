@@ -150,10 +150,7 @@ std::wstring GetCommand(LPWSTR param)
         {
             args.push_back(L"--gopher");
 
-            // args.push_back(L"--force-local-ntp");
-            // args.push_back(L"--disable-background-networking");
-
-            args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
+            args.push_back(L"--disable-features=RendererCodeIntegrity");
 
             // if (IsNeedPortable())
             {

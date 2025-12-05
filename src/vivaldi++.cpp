@@ -4,16 +4,12 @@
 
 HMODULE hInstance;
 
-#define MAGIC_CODE 0x1603ABD9
-
 #include "MinHook.h"
 #include "version.h"
 
 #include "hijack.h"
 #include "utils.h"
 #include "patch.h"
-#include "featuresFlag.h"
-#include "TabBookmark.h"
 #include "portable.h"
 #include "appid.h"
 #include "green.h"
@@ -26,14 +22,8 @@ void VivaldiPlus()
     // 快捷方式
     SetAppId();
 
-    // 读取特性标志
-    ParseFeatureFlags();
-
     // 便携化补丁
     MakeGreen();
-
-    // 标签页，书签，地址栏增强
-    TabBookmark();
 }
 
 void VivaldiPlusCommand(LPWSTR param)
