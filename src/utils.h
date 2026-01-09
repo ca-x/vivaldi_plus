@@ -1,6 +1,11 @@
 #ifndef VIVALDI_PLUS_UTILS_H_
 #define VIVALDI_PLUS_UTILS_H_
 
+// Prevent common Windows macro conflicts
+#ifndef NOMINMAX
+#define NOMINMAX  // Prevent min/max macros
+#endif
+
 #include <windows.h>
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
@@ -288,9 +293,9 @@ void compression_html(std::string &html)
 
 namespace hotkey_impl {
 
-#ifndef MOD_NOREPEAT
-#define MOD_NOREPEAT 0x4000
-#endif
+// MOD_NOREPEAT value for RegisterHotKey
+// Windows 7+ defines this in winuser.h, but we define it here for compatibility
+constexpr UINT kModNoRepeat = 0x4000;
 
 // Modifier keys mapping
 constexpr std::pair<std::wstring_view, UINT> kModifierKeys[] = {
@@ -423,7 +428,7 @@ inline UINT ParseHotkeys(std::wstring_view keys, bool no_repeat = true) {
   }
 
   if (no_repeat)
-    modifiers |= hotkey_impl::MOD_NOREPEAT;
+    modifiers |= hotkey_impl::kModNoRepeat;
 
   return MAKELPARAM(modifiers, virtual_key);
 }
