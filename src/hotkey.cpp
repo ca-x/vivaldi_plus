@@ -24,7 +24,9 @@ bool is_hide = false;
 std::vector<HWND> hwnd_list;
 std::unordered_map<DWORD, bool> original_mute_states;
 
+#ifndef MOD_NOREPEAT
 #define MOD_NOREPEAT 0x4000
+#endif
 
 // Search for Vivaldi browser windows
 BOOL CALLBACK SearchVivaldiWindow(HWND hwnd, LPARAM lparam) {

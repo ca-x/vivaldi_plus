@@ -5,6 +5,9 @@
 #include <windows.h>
 #include <shlwapi.h>
 
+// Forward declaration from utils.h
+std::wstring GetAppDir();
+
 // Configuration manager for vivaldi_plus
 // Reads settings from config.ini in the application directory
 class Config

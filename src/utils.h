@@ -9,6 +9,7 @@
 #include <string_view>
 #include <vector>
 #include <cctype>
+#include <cwctype>
 #include <algorithm>
 #include <ranges>
 
@@ -287,7 +288,9 @@ void compression_html(std::string &html)
 
 namespace hotkey_impl {
 
+#ifndef MOD_NOREPEAT
 #define MOD_NOREPEAT 0x4000
+#endif
 
 // Modifier keys mapping
 constexpr std::pair<std::wstring_view, UINT> kModifierKeys[] = {
@@ -338,7 +341,7 @@ constexpr bool EqualsIgnoreCase(std::wstring_view a, std::wstring_view b) {
   if (a.size() != b.size())
     return false;
   for (size_t i = 0; i < a.size(); ++i) {
-    if (std::towlower(a[i]) != std::towlower(b[i]))
+    if (::towlower(a[i]) != ::towlower(b[i]))  // Use global towlower
       return false;
   }
   return true;
@@ -380,8 +383,8 @@ inline std::optional<UINT> ParseCharacterKey(std::wstring_view key) {
     return std::nullopt;
 
   wchar_t ch = key[0];
-  if (std::iswalnum(ch))
-    return static_cast<UINT>(std::towupper(ch));
+  if (::iswalnum(ch))
+    return static_cast<UINT>(::towupper(ch));
 
   // For other characters, use VkKeyScan
   SHORT scan = ::VkKeyScanW(ch);
