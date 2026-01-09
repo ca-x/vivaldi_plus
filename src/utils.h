@@ -6,9 +6,11 @@
 #pragma comment(lib, "Shlwapi.lib")
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <cctype>
 #include <algorithm>
+#include <ranges>
 
 #include "FastSearch.h"
 
@@ -151,38 +153,38 @@ bool isEndWith(const wchar_t *s, const wchar_t *sub)
 }
 
 // Get absolute path from relative path
-std::wstring GetAbsolutePath(const std::wstring &path)
+std::wstring GetAbsolutePath(std::wstring_view path)
 {
     if (path.empty())
         return L"";
 
     wchar_t buffer[MAX_PATH];
-    if (!::GetFullPathNameW(path.c_str(), MAX_PATH, buffer, nullptr))
-        return path;  // Return original on failure
+    if (!::GetFullPathNameW(path.data(), MAX_PATH, buffer, nullptr))
+        return std::wstring(path);  // Return original on failure
 
     return buffer;
 }
 
 // Expand environment variables in path (e.g., %WINDIR%)
-std::wstring ExpandEnvironmentPath(const std::wstring &path)
+std::wstring ExpandEnvironmentPath(std::wstring_view path)
 {
     if (path.empty())
         return L"";
 
     // First try with reasonable buffer
     std::vector<wchar_t> buffer(MAX_PATH);
-    DWORD result = ::ExpandEnvironmentStringsW(path.c_str(), &buffer[0], (DWORD)buffer.size());
+    DWORD result = ::ExpandEnvironmentStringsW(path.data(), &buffer[0], (DWORD)buffer.size());
 
     if (result == 0)
-        return path;  // Error, return original
+        return std::wstring(path);  // Error, return original
 
     if (result > buffer.size())
     {
         // Buffer too small, resize and try again
         buffer.resize(result);
-        result = ::ExpandEnvironmentStringsW(path.c_str(), &buffer[0], (DWORD)buffer.size());
+        result = ::ExpandEnvironmentStringsW(path.data(), &buffer[0], (DWORD)buffer.size());
         if (result == 0)
-            return path;
+            return std::wstring(path);
     }
 
     // result includes null terminator, so subtract 1
@@ -190,7 +192,7 @@ std::wstring ExpandEnvironmentPath(const std::wstring &path)
 }
 
 // Replace all occurrences of 'search' with 'replace' in string (wide char version)
-void ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, const std::wstring &replace)
+void ReplaceStringInPlace(std::wstring &subject, std::wstring_view search, std::wstring_view replace)
 {
     if (search.empty())
         return;
@@ -204,7 +206,7 @@ void ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, con
 }
 
 // Replace all occurrences of 'search' with 'replace' in string (narrow char version)
-bool ReplaceStringInPlace(std::string &subject, const std::string &search, const std::string &replace)
+bool ReplaceStringInPlace(std::string &subject, std::string_view search, std::string_view replace)
 {
     if (search.empty())
         return false;
@@ -223,17 +225,19 @@ bool ReplaceStringInPlace(std::string &subject, const std::string &search, const
 // String trimming utilities
 inline std::string &ltrim(std::string &s)
 {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+    auto it = std::ranges::find_if(s, [](unsigned char ch) {
         return !std::isspace(ch);
-    }));
+    });
+    s.erase(s.begin(), it);
     return s;
 }
 
 inline std::string &rtrim(std::string &s)
 {
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+    auto it = std::ranges::find_if(s | std::views::reverse, [](unsigned char ch) {
         return !std::isspace(ch);
-    }).base(), s.end());
+    }).base();
+    s.erase(it, s.end());
     return s;
 }
 

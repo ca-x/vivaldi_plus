@@ -25,6 +25,7 @@ target("minhook")
 
 target("vivaldi_plus")
     set_kind("shared")
+    set_languages("c++20")
     set_targetdir("$(builddir)/release")
     set_basename("version")
     add_deps("minhook")

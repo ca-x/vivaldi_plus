@@ -1,4 +1,5 @@
 #include "config.h"  // For Config::Instance()
+#include <string_view>
 
 namespace {
 
@@ -19,10 +20,10 @@ bool IsWhitespace(wchar_t ch)
 // This function ensures the found switch is a whole "word" by checking for
 // whitespace or string boundaries before and after it. This prevents incorrect
 // partial matches (e.g., finding "--foo" within "--foobar").
-size_t FindStandaloneSwitch(const std::wstring &command_line, const std::wstring &flag)
+size_t FindStandaloneSwitch(std::wstring_view command_line, std::wstring_view flag)
 {
     auto pos = command_line.find(flag);
-    while (pos != std::wstring::npos)
+    while (pos != std::wstring_view::npos)
     {
         const bool at_start = pos == 0 || IsWhitespace(command_line[pos - 1]);
         const auto after = pos + flag.size();
@@ -33,7 +34,7 @@ size_t FindStandaloneSwitch(const std::wstring &command_line, const std::wstring
         }
         pos = command_line.find(flag, pos + flag.size());
     }
-    return std::wstring::npos;
+    return std::wstring_view::npos;
 }
 
 void TrimTrailingWhitespace(std::wstring &text)
@@ -44,10 +45,10 @@ void TrimTrailingWhitespace(std::wstring &text)
     }
 }
 
-std::wstring QuoteSpaceIfNeeded(const std::wstring &str)
+std::wstring QuoteSpaceIfNeeded(std::wstring_view str)
 {
-    if (str.find(L' ') == std::wstring::npos)
-        return str;
+    if (str.find(L' ') == std::wstring_view::npos)
+        return std::wstring(str);
 
     std::wstring escaped(L"\"");
     size_t backslash_count = 0;
@@ -97,7 +98,7 @@ std::wstring JoinArgsString(const std::vector<std::wstring> &lines, const std::w
 // Split command line to extract `--single-argument` suffix if present.
 std::pair<std::wstring, std::wstring> SplitSingleArgumentSwitch(const std::wstring &command_line)
 {
-    const std::wstring kSingleArgument = L"--single-argument";
+    constexpr std::wstring_view kSingleArgument = L"--single-argument";
     const auto single_argument_pos = FindStandaloneSwitch(command_line, kSingleArgument);
 
     if (single_argument_pos == std::wstring::npos)
@@ -144,10 +145,11 @@ std::vector<std::wstring> ParseCommandLineArgs(const std::wstring &command_line,
 // Separate arguments before and after the `--` sentinel.
 std::pair<std::vector<std::wstring>, std::vector<std::wstring>> SeparateSentinelArgs(std::vector<std::wstring> args)
 {
+    constexpr std::wstring_view kSentinel = L"--";
     size_t sentinel_index = args.size();
     for (size_t i = 0; i < args.size(); ++i)
     {
-        if (args[i] == L"--")
+        if (args[i] == kSentinel)
         {
             sentinel_index = i;
             break;
@@ -370,17 +372,13 @@ std::wstring GetCommand(LPWSTR param)
 
     // Split off --single-argument if present
     std::wstring command_line(param);
-    std::pair<std::wstring, std::wstring> split_result = SplitSingleArgumentSwitch(command_line);
-    std::wstring prefix = split_result.first;
-    std::wstring suffix = split_result.second;
+    auto [prefix, suffix] = SplitSingleArgumentSwitch(command_line);
 
     // Parse the command line arguments (skipping executable name)
     std::vector<std::wstring> args = ParseCommandLineArgs(prefix);
 
     // Separate arguments before and after the `--` sentinel
-    std::pair<std::vector<std::wstring>, std::vector<std::wstring>> separated = SeparateSentinelArgs(std::move(args));
-    std::vector<std::wstring> main_args = std::move(separated.first);
-    std::vector<std::wstring> trailing_args = std::move(separated.second);
+    auto [main_args, trailing_args] = SeparateSentinelArgs(std::move(args));
 
     // Add marker flag to indicate portable mode is active
     main_args.insert(main_args.begin(), L"--gopher");
