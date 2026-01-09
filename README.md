@@ -38,6 +38,11 @@
 # win32k=1 (兼容) - 仅当 Chrome 启动崩溃时使用，可能影响视频播放质量
 win32k=0
 
+# 调试日志
+# debug_log=0 (默认) - 不输出调试日志
+# debug_log=1 (故障排除) - 输出调试日志 (使用 DebugView 查看)
+debug_log=0
+
 # Chrome 禁用特性
 # 留空使用默认值 (推荐): WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading
 # 或自定义您需要的特性
@@ -53,6 +58,12 @@ data=%app%\..\Data
 # 缓存目录（临时文件）
 # 性能提示: 建议放在 SSD 上以获得最佳视频流性能
 cache=%app%\..\Cache
+
+[hotkey]
+# 老板键 - 快速隐藏/显示浏览器并静音/取消静音
+# 格式: Ctrl+Alt+B 或 Win+H 等
+# 留空则禁用此功能
+boss_key=
 ```
 
 #### 配置项详解
@@ -71,6 +82,13 @@ cache=%app%\..\Cache
     - ⚠️ 可能导致视频硬件解码失败
     - ⚠️ Twitch/YouTube 可能播放质量降低
     - ⚠️ CPU 占用增加 (50-80%)
+
+- **`debug_log`** (默认: `0`)
+  - `0` - 不输出调试日志，性能影响最小
+  - `1` - 输出调试日志用于故障排除
+    - 通过 OutputDebugString 输出（使用 [DebugView](https://learn.microsoft.com/en-us/sysinternals/downloads/debugview) 查看）
+    - 记录命令行参数、错误和便携模式操作
+    - 仅在调查问题时使用
 
 - **`command_line`** (默认: 空)
   - 额外的 Chrome 命令行参数
@@ -115,6 +133,29 @@ cache=%app%\..\Cache
     - 确保至少 2GB 剩余空间
     - 避免网络驱动器
 
+##### `[hotkey]` 部分
+
+- **`boss_key`** (默认: 空，禁用)
+  - 老板键 - 快速隐藏/显示浏览器并静音/取消静音
+  - **功能**:
+    - 按下热键立即隐藏所有 Vivaldi 窗口并静音所有音频
+    - 再次按下恢复窗口并取消静音
+    - 全局热键（系统范围有效）
+  - **格式**: `修饰键+修饰键+按键`
+    - 修饰键: `Ctrl` (或 `Control`)、`Alt`、`Shift`、`Win`
+    - 按键: `A-Z`、`0-9`、`F1-F24`、方向键、`Esc`、`Tab`、`Space` 等
+  - **示例**:
+    ```ini
+    boss_key=Ctrl+Alt+B
+    boss_key=Ctrl+Shift+H
+    boss_key=Win+H
+    boss_key=Ctrl+`
+    ```
+  - **注意事项**:
+    - 确保热键不与其他应用程序或系统热键冲突
+    - 留空则禁用老板键功能
+    - 音频静音状态会被保留（仅在原本未静音时才取消静音）
+
 #### 故障排除
 
 **问题**: Twitch/YouTube 视频加载慢或质量低 (160p)
@@ -128,6 +169,17 @@ cache=%app%\..\Cache
 **问题**: 视频卡顿或频繁缓冲
 - **检查**: 缓存目录位置和磁盘速度
 - **解决**: 将 cache 目录移到 SSD：`cache=C:\Path\To\SSD\Cache`
+
+**问题**: 老板键不起作用
+- **解决**:
+  1. 确保热键不与系统热键冲突
+  2. 尝试不同的按键组合
+  3. 设置 `debug_log=1` 并使用 DebugView 查看错误消息
+  4. 确保按下的是配置中指定的确切组合
+
+**问题**: 窗口恢复顺序错误或未显示所有窗口
+- **说明**: 老板键以相反的创建顺序恢复窗口
+- **解决**: 尝试再次隐藏和显示，或重启浏览器
 
 详细配置说明请查看 `config.ini.example.zh-CN` 文件。
 
@@ -199,6 +251,11 @@ This DLL provides configuration options. Create a `config.ini` file in the same 
 # win32k=1 (compatibility) - Use only if Chrome crashes at startup, may affect video quality
 win32k=0
 
+# Debug Logging
+# debug_log=0 (default) - No debug logging
+# debug_log=1 (troubleshooting) - Output debug logs (viewable with DebugView)
+debug_log=0
+
 # Chrome Features to Disable
 # Leave empty for defaults (recommended): WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading
 # Or customize with your own features
@@ -214,6 +271,12 @@ data=%app%\..\Data
 # Cache directory (temporary files)
 # Performance tip: Place on SSD for best video streaming performance
 cache=%app%\..\Cache
+
+[hotkey]
+# Boss Key - Quickly hide/show browser and mute/unmute audio
+# Format: Ctrl+Alt+B or Win+H, etc.
+# Leave empty to disable
+boss_key=
 ```
 
 #### Configuration Options
@@ -232,6 +295,13 @@ cache=%app%\..\Cache
     - ⚠️ May break hardware video decoding
     - ⚠️ Twitch/YouTube may play in lower quality
     - ⚠️ Increased CPU usage (50-80%)
+
+- **`debug_log`** (default: `0`)
+  - `0` - No debug logging, minimal performance impact
+  - `1` - Output debug logs for troubleshooting
+    - Outputs via OutputDebugString (viewable with [DebugView](https://learn.microsoft.com/en-us/sysinternals/downloads/debugview))
+    - Logs command line arguments, errors, and portable mode operations
+    - Use only when investigating issues
 
 - **`command_line`** (default: empty)
   - Additional Chrome command-line flags
@@ -276,6 +346,29 @@ cache=%app%\..\Cache
     - Ensure at least 2GB free space
     - Avoid network drives
 
+##### `[hotkey]` Section
+
+- **`boss_key`** (default: empty, disabled)
+  - Boss Key - Quickly hide/show browser and mute/unmute audio
+  - **Features**:
+    - Press hotkey to instantly hide all Vivaldi windows and mute all audio
+    - Press again to restore windows and unmute audio
+    - Global hotkey (system-wide)
+  - **Format**: `Modifier+Modifier+Key`
+    - Modifiers: `Ctrl` (or `Control`), `Alt`, `Shift`, `Win`
+    - Keys: `A-Z`, `0-9`, `F1-F24`, arrow keys, `Esc`, `Tab`, `Space`, etc.
+  - **Examples**:
+    ```ini
+    boss_key=Ctrl+Alt+B
+    boss_key=Ctrl+Shift+H
+    boss_key=Win+H
+    boss_key=Ctrl+`
+    ```
+  - **Important notes**:
+    - Make sure the hotkey doesn't conflict with other applications or system hotkeys
+    - Leave empty to disable boss key functionality
+    - Audio mute state is preserved when hiding (unmute only if originally not muted)
+
 #### Troubleshooting
 
 **Issue**: Twitch/YouTube videos load slowly or play in low quality (160p)
@@ -289,6 +382,17 @@ cache=%app%\..\Cache
 **Issue**: Video stuttering or frequent buffering
 - **Check**: Cache directory location and disk speed
 - **Solution**: Move cache to SSD: `cache=C:\Path\To\SSD\Cache`
+
+**Issue**: Boss key not working
+- **Solution**:
+  1. Make sure the hotkey doesn't conflict with system hotkeys
+  2. Try a different key combination
+  3. Set `debug_log=1` and use DebugView to see any error messages
+  4. Make sure you're pressing the exact combination specified
+
+**Issue**: Windows restore in wrong order or not all windows show
+- **Explanation**: Boss key restores windows in reverse creation order
+- **Solution**: Try hiding and showing again, or restart the browser
 
 For detailed configuration documentation, see `config.ini.example` file.
 
