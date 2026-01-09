@@ -235,10 +235,10 @@ inline std::string &ltrim(std::string &s)
 
 inline std::string &rtrim(std::string &s)
 {
-    auto it = std::ranges::find_if(s | std::views::reverse, [](unsigned char ch) {
+    auto it = std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
         return !std::isspace(ch);
-    }).base();
-    s.erase(it, s.end());
+    });
+    s.erase(it.base(), s.end());
     return s;
 }
 
