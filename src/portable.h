@@ -1,3 +1,5 @@
+#include "config.h"  // For Config::Instance()
+
 std::wstring QuoteSpaceIfNeeded(const std::wstring &str)
 {
     if (str.find(L' ') == std::wstring::npos)
@@ -112,6 +114,71 @@ std::wstring GetDiskCacheDir()
     return std::wstring(cacheDirBuffer);
 }
 
+// Merge all --disable-features flags into a single one
+// Chrome expects only one --disable-features flag, so we need to combine them
+struct ProcessedArgs
+{
+    std::vector<std::wstring> final_args;
+    bool has_user_data_dir = false;
+    bool has_disk_cache_dir = false;
+};
+
+ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring>& args)
+{
+    ProcessedArgs result;
+    result.final_args.reserve(args.size() + 4);
+
+    std::wstring combined_features;
+    const std::wstring disable_features_prefix = L"--disable-features=";
+
+    for (const auto& arg : args)
+    {
+        if (arg.find(disable_features_prefix) == 0)
+        {
+            // Extract feature names from existing --disable-features flags
+            if (!combined_features.empty())
+            {
+                combined_features += L",";
+            }
+            combined_features += arg.substr(disable_features_prefix.length());
+        }
+        else
+        {
+            // Check if user already specified data/cache dirs
+            if (arg.find(L"--user-data-dir=") == 0)
+            {
+                result.has_user_data_dir = true;
+            }
+            if (arg.find(L"--disk-cache-dir=") == 0)
+            {
+                result.has_disk_cache_dir = true;
+            }
+            result.final_args.push_back(arg);
+        }
+    }
+
+    // Add features to disable
+    // Priority: User-specified in config.ini > Default compatibility features
+    std::wstring features_to_add = Config::Instance().GetDisableFeatures();
+
+    if (!features_to_add.empty())
+    {
+        if (!combined_features.empty())
+        {
+            combined_features += L",";
+        }
+        combined_features += features_to_add;
+    }
+
+    // Rebuild the final argument list with a single merged --disable-features flag
+    if (!combined_features.empty())
+    {
+        result.final_args.push_back(disable_features_prefix + combined_features);
+    }
+
+    return result;
+}
+
 // 构造新命令行
 // Parses the command line param into individual arguments and inserts
 // additional arguments for portable mode.
@@ -127,51 +194,71 @@ std::wstring GetCommand(LPWSTR param)
     LPWSTR *argv = CommandLineToArgvW(param, &argc);
 
     int insert_pos = 0;
+    bool found_sentinel = false;
+
+    // Find insertion position (before -- or --single-argument)
     for (int i = 0; i < argc; i++)
     {
         if (wcscmp(argv[i], L"--") == 0)
         {
+            found_sentinel = true;
             break;
         }
         if (wcscmp(argv[i], L"--single-argument") == 0)
         {
+            found_sentinel = true;
             break;
         }
         insert_pos = i;
     }
-    for (int i = 0; i < argc; i++)
+
+    // Collect all original arguments (skip argv[0] which is the executable path)
+    for (int i = 1; i < argc; i++)
     {
-        // 保留原来参数
-        if (i)
-            args.push_back(argv[i]);
-
-        // 追加参数
-        if (i == insert_pos)
-        {
-            args.push_back(L"--gopher");
-
-            args.push_back(L"--disable-features=RendererCodeIntegrity");
-
-            // if (IsNeedPortable())
-            {
-                auto diskcache = GetDiskCacheDir();
-
-                wchar_t temp[MAX_PATH];
-                wsprintf(temp, L"--disk-cache-dir=%s", diskcache.c_str());
-                args.push_back(temp);
-            }
-            {
-                auto userdata = GetUserDataDir();
-
-                wchar_t temp[MAX_PATH];
-                wsprintf(temp, L"--user-data-dir=%s", userdata.c_str());
-                args.push_back(temp);
-            }
-        }
+        args.push_back(argv[i]);
     }
+
     LocalFree(argv);
 
-    return JoinArgsString(args, L" ");
+    // Process and merge --disable-features flags
+    ProcessedArgs processed = ProcessAndMergeArgs(args);
+
+    // Build final argument list
+    std::vector<std::wstring> final_args;
+
+    // Add marker flag to indicate portable mode is active
+    final_args.push_back(L"--gopher");
+
+    // Add merged disable-features
+    for (const auto& arg : processed.final_args)
+    {
+        final_args.push_back(arg);
+    }
+
+    // Add custom directories if not already specified by user
+    if (!processed.has_disk_cache_dir)
+    {
+        auto diskcache = GetDiskCacheDir();
+        if (!diskcache.empty())
+        {
+            wchar_t temp[MAX_PATH];
+            wsprintf(temp, L"--disk-cache-dir=%s", diskcache.c_str());
+            final_args.push_back(temp);
+        }
+    }
+
+    if (!processed.has_user_data_dir)
+    {
+        auto userdata = GetUserDataDir();
+        if (!userdata.empty())
+        {
+            wchar_t temp[MAX_PATH];
+            wsprintf(temp, L"--user-data-dir=%s", userdata.c_str());
+            final_args.push_back(temp);
+        }
+    }
+
+    return JoinArgsString(final_args, L" ");
 }
 
 void Portable(LPWSTR param)

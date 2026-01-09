@@ -1,0 +1,123 @@
+; Vivaldi Plus Configuration File
+; Rename this file to "config.ini" and place it in the same directory as the Vivaldi executable
+; All settings are optional - defaults will be used if not specified
+
+[general]
+; Win32k System Call Policy
+; Controls whether to forcibly enable win32k system calls in renderer processes
+;
+; win32k=0 (RECOMMENDED DEFAULT)
+;   - Keeps Chrome's default win32k lockdown for security
+;   - Ensures proper GPU hardware acceleration
+;   - Required for optimal video streaming (Twitch, YouTube, etc.)
+;   - Video decoding will use hardware acceleration
+;
+; win32k=1 (USE ONLY IF CHROME CRASHES AT STARTUP)
+;   - Forces win32k system calls to be enabled
+;   - May fix crashes with certain antivirus software (Symantec, McAfee, etc.)
+;   - WARNING: Can break hardware video decoding
+;   - WARNING: May cause Twitch/YouTube to play in low quality
+;   - WARNING: Increases CPU usage during video playback
+;   - Only use this if Chrome won't start without it
+;
+; For more information about this setting, see:
+; https://source.chromium.org/chromium/chromium/src/+/main:sandbox/win/src/process_mitigations.cc
+win32k=0
+
+; Chrome Features to Disable
+; Specifies which Chromium features should be disabled via --disable-features flag
+;
+; BEHAVIOR:
+;   - If NOT specified or empty: Uses default compatibility features
+;     Default: WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading
+;   - If specified: Uses ONLY your specified features (replaces defaults)
+;
+; WHEN TO CUSTOMIZE:
+;   - Leave empty/unspecified for best compatibility (RECOMMENDED)
+;   - Customize only if you need specific feature control
+;   - Useful for advanced troubleshooting or testing
+;
+; COMMON FEATURES TO DISABLE:
+;   - WinSboxNoFakeGdiInit: Fixes GPU initialization with some drivers
+;   - WebUIInProcessResourceLoading: Improves WebUI compatibility
+;   - RendererCodeIntegrity: Compatibility with injected DLLs
+;   - AutofillServerCommunication: Disable autofill sync
+;   - TranslateUI: Disable translation prompts
+;
+; EXAMPLES:
+;   Default (recommended):
+;     disable_features=
+;   OR
+;     ; disable_features=WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading
+;
+;   Custom features only:
+;     disable_features=RendererCodeIntegrity,AutofillServerCommunication
+;
+;   Add more features to defaults:
+;     disable_features=WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading,TranslateUI
+;
+; NOTE: Multiple features must be separated by commas (no spaces)
+; NOTE: This will be merged with any --disable-features from command line
+disable_features=
+
+; Additional Command Line Arguments
+; You can add custom Chrome command-line flags here
+; Example: command_line=--force-dark-mode --enable-features=SomeFeature
+; Multiple flags should be separated by spaces
+command_line=
+
+
+[dir_setting]
+; Custom Data Directory
+; Specify where Chrome should store user data (profiles, bookmarks, extensions, etc.)
+;
+; Supported path formats:
+;   - Relative paths: data=..\Data
+;   - Absolute paths: data=C:\MyBrowser\Data
+;   - Environment variables: data=%LOCALAPPDATA%\VivaldiPlus\Data
+;   - %app% variable: data=%app%\..\Data (resolves to application directory)
+;
+; Default if not specified: %app%\..\Data
+; Leave empty to use Chrome's default location
+data=%app%\..\Data
+
+; Custom Cache Directory
+; Specify where Chrome should store temporary cache files
+;
+; Supported path formats: (same as data directory above)
+;
+; Default if not specified: %app%\..\Cache
+; Leave empty to use Chrome's default location
+;
+; PERFORMANCE TIP: For best video streaming performance:
+;   - Place cache on an SSD (not HDD) if possible
+;   - Ensure the drive has sufficient free space (at least 2GB)
+;   - Avoid network drives or slow storage devices
+cache=%app%\..\Cache
+
+
+; ============================================================================
+; TROUBLESHOOTING GUIDE
+; ============================================================================
+;
+; Problem: Twitch/YouTube videos load slowly or play in low quality (160p)
+; Solution: Make sure win32k=0 (default). If it's set to 1, change it to 0.
+;           Check chrome://gpu in your browser - "Video Decode" should show
+;           "Hardware accelerated", not "Software only".
+;
+; Problem: Chrome crashes immediately at startup
+; Solution: Try setting win32k=1. This may fix compatibility issues with
+;           some antivirus software. If this works, consider excluding Chrome
+;           from your antivirus's real-time scanning.
+;
+; Problem: Videos stutter or buffer frequently
+; Solution: Check your cache directory location. Make sure it's on a fast
+;           drive (SSD preferred) with plenty of free space. You can also
+;           try setting cache=%TEMP%\VivaldiCache to use system temp folder.
+;
+; Problem: Custom directories not working
+; Solution: Make sure paths don't contain special characters. Use forward
+;           slashes (/) or escaped backslashes (\\). Check that the parent
+;           directory exists and has write permissions.
+;
+; For more help, visit: https://github.com/your-repo/vivaldi_plus/issues

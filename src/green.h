@@ -1,4 +1,5 @@
 #include <lmaccess.h>
+#include "config.h"  // For Config::Instance()
 
 BOOL WINAPI FakeGetComputerName(
     _Out_ LPTSTR lpBuffer,
@@ -170,8 +171,23 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
     {
         // https://source.chromium.org/chromium/chromium/src/+/main:sandbox/win/src/process_mitigations.cc;l=362;drc=4c2fec5f6699ffeefd93137d2bf8c03504c6664c
         PDWORD64 policy_value_1 = &((PDWORD64)lpValue)[0];
+
+        // Always remove the block on non-Microsoft binaries (required for portable mode)
         *policy_value_1 &= ~PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
-        *policy_value_1 &= ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
+
+        // Conditionally handle win32k system call policy based on config
+        // Default (win32k=0): Keep Chrome's win32k lockdown for security and proper GPU acceleration
+        // Optional (win32k=1): Force enable win32k only if Chrome crashes at startup
+        //
+        // IMPORTANT: Forcing win32k enabled can break:
+        // - Hardware video decoding (causes Twitch/YouTube to use software decode)
+        // - GPU acceleration in renderer processes
+        // - Media Source Extensions (MSE) performance
+        // Only enable if absolutely necessary for compatibility
+        if (Config::Instance().IsWin32KEnabled())
+        {
+            *policy_value_1 &= ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
+        }
     }
     return RawUpdateProcThreadAttribute(lpAttributeList, dwFlags, Attribute, lpValue, cbSize, lpPreviousValue, lpReturnSize);
 }

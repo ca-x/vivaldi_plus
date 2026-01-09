@@ -1,0 +1,107 @@
+; Vivaldi Plus 配置文件
+; 将此文件重命名为 "config.ini" 并放在 Vivaldi 可执行文件同一目录下
+; 所有设置都是可选的 - 如果不指定将使用默认值
+
+[general]
+; Win32k 系统调用策略
+; 控制是否强制启用渲染进程中的 win32k 系统调用
+;
+; win32k=0 (推荐默认值)
+;   - 保持 Chrome 默认的 win32k 锁定以提高安全性
+;   - 确保 GPU 硬件加速正常工作
+;   - 视频流播放所需 (Twitch, YouTube 等)
+;   - 视频解码将使用硬件加速
+;
+; win32k=1 (仅当 Chrome 启动崩溃时使用)
+;   - 强制启用 win32k 系统调用
+;   - 可能修复某些杀毒软件导致的崩溃 (如 Symantec, McAfee 等)
+;   - 警告: 可能破坏硬件视频解码
+;   - 警告: 可能导致 Twitch/YouTube 低质量播放
+;   - 警告: 视频播放时 CPU 占用增加
+;   - 仅在 Chrome 无法启动时使用
+win32k=0
+
+; Chrome 禁用特性列表
+; 指定通过 --disable-features 标志禁用哪些 Chromium 特性
+;
+; 行为说明:
+;   - 如果不指定或为空: 使用默认兼容性特性
+;     默认值: WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading
+;   - 如果指定了值: 仅使用您指定的特性 (替换默认值)
+;
+; 何时需要自定义:
+;   - 留空/不指定可获得最佳兼容性 (推荐)
+;   - 仅在需要特定特性控制时自定义
+;   - 适用于高级故障排除或测试
+;
+; 常用的禁用特性:
+;   - WinSboxNoFakeGdiInit: 修复某些显卡驱动的 GPU 初始化问题
+;   - WebUIInProcessResourceLoading: 改善 WebUI 兼容性
+;   - RendererCodeIntegrity: 允许注入 DLL (便携化所需)
+;   - AutofillServerCommunication: 禁用自动填充同步
+;   - TranslateUI: 禁用翻译提示
+;
+; 示例:
+;   使用默认值 (推荐):
+;     disable_features=
+;   或者
+;     ; disable_features=WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading
+;
+;   仅使用自定义特性:
+;     disable_features=RendererCodeIntegrity,AutofillServerCommunication
+;
+;   在默认值基础上添加更多特性:
+;     disable_features=WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading,TranslateUI
+;
+; 注意: 多个特性必须用逗号分隔 (不要有空格)
+; 注意: 此设置会与命令行的 --disable-features 合并
+disable_features=
+
+; 额外的命令行参数
+; 您可以在这里添加自定义的 Chrome 命令行标志
+; 示例: command_line=--force-dark-mode --enable-features=SomeFeature
+command_line=
+
+
+[dir_setting]
+; 自定义数据目录
+; 指定 Chrome 存储用户数据的位置 (配置文件、书签、扩展等)
+;
+; 支持的路径格式:
+;   - 相对路径: data=..\Data
+;   - 绝对路径: data=C:\MyBrowser\Data
+;   - 环境变量: data=%LOCALAPPDATA%\VivaldiPlus\Data
+;   - %app% 变量: data=%app%\..\Data (解析为应用程序目录)
+;
+; 默认值: %app%\..\Data
+data=%app%\..\Data
+
+; 自定义缓存目录
+; 指定 Chrome 存储临时缓存文件的位置
+;
+; 性能提示: 为获得最佳视频流性能:
+;   - 尽可能将缓存放在 SSD 上 (而非机械硬盘)
+;   - 确保驱动器有足够的剩余空间 (至少 2GB)
+;   - 避免使用网络驱动器或慢速存储设备
+;
+; 默认值: %app%\..\Cache
+cache=%app%\..\Cache
+
+
+; ============================================================================
+; 故障排除指南
+; ============================================================================
+;
+; 问题: Twitch/YouTube 视频加载缓慢或播放质量很低 (160p)
+; 解决方案: 确保 win32k=0 (默认值)。如果设置为 1，改回 0。
+;           在浏览器中检查 chrome://gpu - "Video Decode" 应显示
+;           "Hardware accelerated"，而不是 "Software only"。
+;
+; 问题: Chrome 启动时立即崩溃
+; 解决方案: 尝试设置 win32k=1。这可能修复某些杀毒软件的兼容性问题。
+;           如果有效，考虑将 Chrome 从杀毒软件的实时扫描中排除。
+;
+; 问题: 视频卡顿或频繁缓冲
+; 解决方案: 检查缓存目录位置。确保它在快速驱动器上 (首选 SSD)，
+;           并有充足的空闲空间。也可尝试设置 cache=%TEMP%\VivaldiCache
+;           来使用系统临时文件夹。
