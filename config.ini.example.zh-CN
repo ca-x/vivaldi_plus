@@ -21,6 +21,23 @@
 ;   - 仅在 Chrome 无法启动时使用
 win32k=0
 
+; 调试日志
+; 控制是否输出调试日志用于故障排除
+;
+; debug_log=0 (默认)
+;   - 不输出调试日志，性能影响最小
+;
+; debug_log=1 (仅用于故障排除)
+;   - 通过 OutputDebugString 输出调试日志 (使用 DebugView 查看)
+;   - 记录命令行参数、错误和便携模式操作
+;   - 仅在调查问题时使用
+;
+; 查看调试日志的方法:
+;   1. 从 https://learn.microsoft.com/en-us/sysinternals/downloads/debugview 下载 DebugView
+;   2. 以管理员身份运行 DebugView
+;   3. 查找以 "[vivaldi++]" 开头的行
+debug_log=0
+
 ; Chrome 禁用特性列表
 ; 指定通过 --disable-features 标志禁用哪些 Chromium 特性
 ;
@@ -60,6 +77,7 @@ disable_features=
 ; 额外的命令行参数
 ; 您可以在这里添加自定义的 Chrome 命令行标志
 ; 示例: command_line=--force-dark-mode --enable-features=SomeFeature
+; 多个标志用空格分隔
 command_line=
 
 
@@ -74,18 +92,56 @@ command_line=
 ;   - %app% 变量: data=%app%\..\Data (解析为应用程序目录)
 ;
 ; 默认值: %app%\..\Data
+; 留空则使用 Chrome 的默认位置
 data=%app%\..\Data
 
 ; 自定义缓存目录
 ; 指定 Chrome 存储临时缓存文件的位置
 ;
+; 支持的路径格式: (与数据目录相同)
+;
+; 默认值: %app%\..\Cache
+; 留空则使用 Chrome 的默认位置
+;
 ; 性能提示: 为获得最佳视频流性能:
 ;   - 尽可能将缓存放在 SSD 上 (而非机械硬盘)
 ;   - 确保驱动器有足够的剩余空间 (至少 2GB)
 ;   - 避免使用网络驱动器或慢速存储设备
-;
-; 默认值: %app%\..\Cache
 cache=%app%\..\Cache
+
+
+[hotkey]
+; 老板键 - 隐藏/显示浏览器窗口并静音/取消静音
+; 按下此热键可立即隐藏所有 Vivaldi 窗口并静音所有音频
+; 再次按下可恢复窗口并取消静音
+;
+; 格式: 修饰键+修饰键+按键
+; 修饰键: Ctrl (或 Control)、Alt、Shift、Win
+; 按键: A-Z、0-9、F1-F24、方向键、Esc、Tab、Space 等
+;
+; 示例:
+;   boss_key=Ctrl+Alt+B
+;   boss_key=Ctrl+Shift+H
+;   boss_key=Win+H
+;   boss_key=Ctrl+`
+;   boss_key=Shift+Esc
+;
+; 支持的按键:
+;   - 字母: A-Z (不区分大小写)
+;   - 数字: 0-9
+;   - 功能键: F1-F24
+;   - 方向键: Left、Right、Up、Down (或 ←、→、↑、↓)
+;   - 特殊键: Esc、Tab、Backspace、Enter、Space、Delete、Insert、Home、End、PageUp、PageDown
+;   - 符号: `、-、=、[、]、\、;、'、,、.、/ 等
+;
+; 重要提示:
+;   - 热键是全局注册的 (系统范围)
+;   - 确保不与其他应用程序或系统热键冲突
+;   - 留空则禁用老板键功能
+;   - 隐藏时会保留音频静音状态 (仅在原本未静音时才取消静音)
+;
+; 默认值: 空 (禁用)
+boss_key=
 
 
 ; ============================================================================
@@ -105,3 +161,20 @@ cache=%app%\..\Cache
 ; 解决方案: 检查缓存目录位置。确保它在快速驱动器上 (首选 SSD)，
 ;           并有充足的空闲空间。也可尝试设置 cache=%TEMP%\VivaldiCache
 ;           来使用系统临时文件夹。
+;
+; 问题: 自定义目录不起作用
+; 解决方案: 确保路径不包含特殊字符。使用正斜杠 (/) 或转义的反斜杠 (\\)。
+;           检查父目录是否存在并有写入权限。
+;
+; 问题: 老板键不起作用
+; 解决方案: 1. 确保热键不与系统热键冲突
+;           2. 尝试不同的按键组合
+;           3. 设置 debug_log=1 并使用 DebugView 查看错误消息
+;           4. 确保按下的是配置中指定的确切组合
+;
+; 问题: 窗口恢复顺序错误或未显示所有窗口
+; 解决方案: 这可能发生在窗口以特定顺序创建时。
+;           老板键以相反的创建顺序恢复窗口。
+;           尝试再次隐藏和显示，或重启浏览器。
+;
+; 获取更多帮助，请访问: https://github.com/ca-x/vivaldi_plus/issues

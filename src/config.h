@@ -16,6 +16,7 @@ private:
     std::wstring command_line_;
     std::wstring disable_features_;
     bool has_custom_disable_features_;
+    std::wstring boss_key_;  // Boss key hotkey string (e.g., "Ctrl+Alt+B")
 
     Config()
     {
@@ -67,6 +68,12 @@ private:
             disable_features_ = L"WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading";
             has_custom_disable_features_ = false;
         }
+
+        // Read boss_key setting from [hotkey] section
+        // Example: boss_key=Ctrl+Alt+B
+        wchar_t boss_key_buffer[256];
+        GetPrivateProfileStringW(L"hotkey", L"boss_key", L"", boss_key_buffer, 256, config_path_.c_str());
+        boss_key_ = boss_key_buffer;
     }
 
 public:
@@ -109,6 +116,14 @@ public:
     bool HasCustomDisableFeatures() const
     {
         return has_custom_disable_features_;
+    }
+
+    // Returns boss key hotkey string from config
+    // Example: "Ctrl+Alt+B"
+    // Empty string if not configured
+    const std::wstring& GetBossKey() const
+    {
+        return boss_key_;
     }
 
     // Delete copy constructor and assignment operator

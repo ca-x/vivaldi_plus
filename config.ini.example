@@ -113,6 +113,40 @@ data=%app%\..\Data
 cache=%app%\..\Cache
 
 
+[hotkey]
+; Boss Key - Hide/Show Browser and Mute/Unmute Audio
+; Press this hotkey to instantly hide all Vivaldi windows and mute all audio
+; Press again to restore windows and unmute audio
+;
+; Format: Modifier+Modifier+Key
+; Modifiers: Ctrl (or Control), Alt, Shift, Win
+; Keys: A-Z, 0-9, F1-F24, Arrow keys, Esc, Tab, Space, etc.
+;
+; Examples:
+;   boss_key=Ctrl+Alt+B
+;   boss_key=Ctrl+Shift+H
+;   boss_key=Win+H
+;   boss_key=Ctrl+`
+;   boss_key=Shift+Esc
+;
+; Supported keys:
+;   - Letters: A-Z (case insensitive)
+;   - Numbers: 0-9
+;   - Function keys: F1-F24
+;   - Arrow keys: Left, Right, Up, Down (or ←, →, ↑, ↓)
+;   - Special keys: Esc, Tab, Backspace, Enter, Space, Delete, Insert, Home, End, PageUp, PageDown
+;   - Symbols: `, -, =, [, ], \, ;, ', ,, ., /, etc.
+;
+; IMPORTANT NOTES:
+;   - The hotkey is registered globally (system-wide)
+;   - Make sure it doesn't conflict with other applications or system hotkeys
+;   - Leave empty to disable boss key functionality
+;   - Audio mute state is preserved when hiding (unmute only if originally not muted)
+;
+; Default: empty (disabled)
+boss_key=
+
+
 ; ============================================================================
 ; TROUBLESHOOTING GUIDE
 ; ============================================================================
@@ -137,4 +171,15 @@ cache=%app%\..\Cache
 ;           slashes (/) or escaped backslashes (\\). Check that the parent
 ;           directory exists and has write permissions.
 ;
-; For more help, visit: https://github.com/your-repo/vivaldi_plus/issues
+; Problem: Boss key not working
+; Solution: 1. Make sure the hotkey doesn't conflict with system hotkeys
+;           2. Try a different key combination
+;           3. Check debug_log=1 and use DebugView to see any error messages
+;           4. Make sure you're pressing the exact combination specified
+;
+; Problem: Windows restore in wrong order or not all windows show
+; Solution: This can happen if windows were created in a specific order.
+;           The boss key restores windows in reverse creation order.
+;           Try hiding and showing again, or restart the browser.
+;
+; For more help, visit: https://github.com/ca-x/vivaldi_plus/issues

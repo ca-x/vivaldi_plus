@@ -10,6 +10,7 @@
 #include "portable.h"
 #include "appid.h"
 #include "green.h"
+#include "hotkey.h"
 
 // Global module instance
 HMODULE hInstance = nullptr;
@@ -26,6 +27,9 @@ void VivaldiPlus()
 
     // Apply portable mode registry patches
     MakeGreen();
+
+    // Initialize boss key hotkey (if configured in config.ini)
+    bosskey::Initialize();
 }
 
 // Handle command line and decide whether to restart in portable mode
