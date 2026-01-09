@@ -24,6 +24,23 @@
 ; https://source.chromium.org/chromium/chromium/src/+/main:sandbox/win/src/process_mitigations.cc
 win32k=0
 
+; Debug Logging
+; Controls whether to output debug logs for troubleshooting
+;
+; debug_log=0 (DEFAULT)
+;   - No debug logging, minimal performance impact
+;
+; debug_log=1 (FOR TROUBLESHOOTING ONLY)
+;   - Outputs debug logs via OutputDebugString (viewable with DebugView)
+;   - Logs command line arguments, errors, and portable mode operations
+;   - Use only when investigating issues
+;
+; To view debug logs:
+;   1. Download DebugView from https://learn.microsoft.com/en-us/sysinternals/downloads/debugview
+;   2. Run DebugView as Administrator
+;   3. Look for lines starting with "[vivaldi++]"
+debug_log=0
+
 ; Chrome Features to Disable
 ; Specifies which Chromium features should be disabled via --disable-features flag
 ;

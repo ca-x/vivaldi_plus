@@ -12,6 +12,7 @@ class Config
 private:
     std::wstring config_path_;
     bool win32k_enabled_;
+    bool debug_log_enabled_;
     std::wstring command_line_;
     std::wstring disable_features_;
     bool has_custom_disable_features_;
@@ -20,6 +21,7 @@ private:
     {
         // Initialize with default values
         win32k_enabled_ = false;  // Default: do not force enable win32k (safer)
+        debug_log_enabled_ = false;  // Default: no debug logging
         has_custom_disable_features_ = false;
         LoadConfig();
     }
@@ -37,6 +39,11 @@ private:
         // 0 = disabled (default, safer, better for video streaming)
         // 1 = enabled (only use if Chrome crashes at startup)
         win32k_enabled_ = (GetPrivateProfileIntW(L"general", L"win32k", 0, config_path_.c_str()) != 0);
+
+        // Read debug_log setting from [general] section
+        // 0 = disabled (default)
+        // 1 = enabled (output debug logs for troubleshooting)
+        debug_log_enabled_ = (GetPrivateProfileIntW(L"general", L"debug_log", 0, config_path_.c_str()) != 0);
 
         // Read additional command line arguments
         wchar_t buffer[4096];
@@ -75,6 +82,13 @@ public:
     bool IsWin32KEnabled() const
     {
         return win32k_enabled_;
+    }
+
+    // Returns true if debug logging is enabled
+    // Default is false
+    bool IsDebugLogEnabled() const
+    {
+        return debug_log_enabled_;
     }
 
     // Returns additional command line arguments from config
