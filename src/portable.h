@@ -193,23 +193,29 @@ std::wstring GetCommand(LPWSTR param)
     int argc;
     LPWSTR *argv = CommandLineToArgvW(param, &argc);
 
-    int insert_pos = 0;
-    bool found_sentinel = false;
-
-    // Find insertion position (before -- or --single-argument)
+    // Check if --gopher flag already exists (browser is already running in portable mode)
+    bool has_gopher = false;
     for (int i = 0; i < argc; i++)
     {
-        if (wcscmp(argv[i], L"--") == 0)
+        if (wcscmp(argv[i], L"--gopher") == 0)
         {
-            found_sentinel = true;
+            has_gopher = true;
             break;
         }
-        if (wcscmp(argv[i], L"--single-argument") == 0)
+    }
+
+    // If already in portable mode, just return the original params unchanged
+    // This happens when the browser is already running and receives a new URL
+    if (has_gopher)
+    {
+        // Skip argv[0] (executable path) and reconstruct the command line
+        std::vector<std::wstring> original_args;
+        for (int i = 1; i < argc; i++)
         {
-            found_sentinel = true;
-            break;
+            original_args.push_back(argv[i]);
         }
-        insert_pos = i;
+        LocalFree(argv);
+        return JoinArgsString(original_args, L" ");
     }
 
     // Collect all original arguments (skip argv[0] which is the executable path)
