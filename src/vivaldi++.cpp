@@ -119,22 +119,24 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
     switch (dwReason)
     {
     case DLL_PROCESS_ATTACH:
-        DisableThreadLibraryCalls(hModule);
-        hInstance = hModule;
-
-        // Restore original version.dll functionality by loading system DLL
-        LoadSysDll(hModule);
-
-        // Initialize MinHook library
-        MH_STATUS status = MH_Initialize();
-        if (status != MH_OK)
         {
-            DebugLog(L"MH_Initialize failed: %d", status);
-            return TRUE;  // Return TRUE to allow process to continue
-        }
+            DisableThreadLibraryCalls(hModule);
+            hInstance = hModule;
 
-        // Install our loader hook
-        InstallLoader();
+            // Restore original version.dll functionality by loading system DLL
+            LoadSysDll(hModule);
+
+            // Initialize MinHook library
+            MH_STATUS status = MH_Initialize();
+            if (status != MH_OK)
+            {
+                DebugLog(L"MH_Initialize failed: %d", status);
+                return TRUE;  // Return TRUE to allow process to continue
+            }
+
+            // Install our loader hook
+            InstallLoader();
+        }
         break;
 
     case DLL_PROCESS_DETACH:
