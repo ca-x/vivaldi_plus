@@ -1,21 +1,33 @@
-#include <map>
+#ifndef VIVALDI_PLUS_UTILS_H_
+#define VIVALDI_PLUS_UTILS_H_
+
+#include <windows.h>
+#include <Shlwapi.h>
+#pragma comment(lib, "Shlwapi.lib")
+
 #include <string>
 #include <vector>
 #include <cctype>
 #include <algorithm>
-#include <functional>
 
 #include "FastSearch.h"
 
+// String formatting utilities
 std::wstring Format(const wchar_t *format, va_list args)
 {
-    std::vector<wchar_t> buffer;
+    if (!format)
+        return L"";
 
-    size_t length = _vscwprintf(format, args);
+    // Calculate required buffer size
+    int length = _vscwprintf(format, args);
+    if (length < 0)
+        return L"";
 
-    buffer.resize((length + 1) * sizeof(wchar_t));
+    // Allocate buffer (length + 1 for null terminator)
+    std::vector<wchar_t> buffer(length + 1);
 
-    _vsnwprintf_s(&buffer[0], length + 1, length, format, args);
+    // Format string into buffer
+    _vsnwprintf_s(&buffer[0], buffer.size(), length, format, args);
 
     return std::wstring(&buffer[0]);
 }
@@ -23,116 +35,166 @@ std::wstring Format(const wchar_t *format, va_list args)
 std::wstring Format(const wchar_t *format, ...)
 {
     va_list args;
-
     va_start(args, format);
-    auto str = Format(format, args);
+    std::wstring str = Format(format, args);
     va_end(args);
-
     return str;
 }
 
+// Debug logging to OutputDebugString
 void DebugLog(const wchar_t *format, ...)
 {
     va_list args;
-
     va_start(args, format);
-    auto str = Format(format, args);
+    std::wstring str = Format(format, args);
     va_end(args);
 
-    str = Format(L"[vivaldi++]%s\n", str.c_str());
-
-    OutputDebugStringW(str.c_str());
+    std::wstring output = Format(L"[vivaldi++]%s\n", str.c_str());
+    OutputDebugStringW(output.c_str());
 }
 
-// 搜索内存
+// Memory search wrapper
 uint8_t *memmem(uint8_t *src, int n, const uint8_t *sub, int m)
 {
     return (uint8_t *)FastSearch(src, n, sub, m);
 }
 
+// Search for byte pattern in PE module's .text section
 uint8_t *SearchModuleRaw(HMODULE module, const uint8_t *sub, int m)
 {
+    if (!module || !sub || m <= 0)
+        return nullptr;
+
     uint8_t *buffer = (uint8_t *)module;
 
-    PIMAGE_NT_HEADERS nt_header = (PIMAGE_NT_HEADERS)(buffer + ((PIMAGE_DOS_HEADER)buffer)->e_lfanew);
-    PIMAGE_SECTION_HEADER section = (PIMAGE_SECTION_HEADER)((char *)nt_header + sizeof(DWORD) +
-                                                            sizeof(IMAGE_FILE_HEADER) + nt_header->FileHeader.SizeOfOptionalHeader);
+    // Verify DOS header
+    PIMAGE_DOS_HEADER dos_header = (PIMAGE_DOS_HEADER)buffer;
+    if (dos_header->e_magic != IMAGE_DOS_SIGNATURE)
+        return nullptr;
 
+    // Verify NT header
+    PIMAGE_NT_HEADERS nt_header = (PIMAGE_NT_HEADERS)(buffer + dos_header->e_lfanew);
+    if (nt_header->Signature != IMAGE_NT_SIGNATURE)
+        return nullptr;
+
+    // Get section headers
+    PIMAGE_SECTION_HEADER section = (PIMAGE_SECTION_HEADER)((char *)nt_header + sizeof(DWORD) +
+                                                             sizeof(IMAGE_FILE_HEADER) + nt_header->FileHeader.SizeOfOptionalHeader);
+
+    // Search .text section
     for (int i = 0; i < nt_header->FileHeader.NumberOfSections; i++)
     {
         if (strcmp((const char *)section[i].Name, ".text") == 0)
         {
-            return memmem(buffer + section[i].PointerToRawData, section[i].SizeOfRawData, sub, m);
-            break;
+            return memmem(buffer + section[i].VirtualAddress, section[i].Misc.VirtualSize, sub, m);
         }
     }
-    return NULL;
+    return nullptr;
 }
 
+// Search for byte pattern in PE module's .rdata section
 uint8_t *SearchModuleRaw2(HMODULE module, const uint8_t *sub, int m)
 {
+    if (!module || !sub || m <= 0)
+        return nullptr;
+
     uint8_t *buffer = (uint8_t *)module;
 
-    PIMAGE_NT_HEADERS nt_header = (PIMAGE_NT_HEADERS)(buffer + ((PIMAGE_DOS_HEADER)buffer)->e_lfanew);
-    PIMAGE_SECTION_HEADER section = (PIMAGE_SECTION_HEADER)((char *)nt_header + sizeof(DWORD) +
-                                                            sizeof(IMAGE_FILE_HEADER) + nt_header->FileHeader.SizeOfOptionalHeader);
+    // Verify DOS header
+    PIMAGE_DOS_HEADER dos_header = (PIMAGE_DOS_HEADER)buffer;
+    if (dos_header->e_magic != IMAGE_DOS_SIGNATURE)
+        return nullptr;
 
+    // Verify NT header
+    PIMAGE_NT_HEADERS nt_header = (PIMAGE_NT_HEADERS)(buffer + dos_header->e_lfanew);
+    if (nt_header->Signature != IMAGE_NT_SIGNATURE)
+        return nullptr;
+
+    // Get section headers
+    PIMAGE_SECTION_HEADER section = (PIMAGE_SECTION_HEADER)((char *)nt_header + sizeof(DWORD) +
+                                                             sizeof(IMAGE_FILE_HEADER) + nt_header->FileHeader.SizeOfOptionalHeader);
+
+    // Search .rdata section
     for (int i = 0; i < nt_header->FileHeader.NumberOfSections; i++)
     {
         if (strcmp((const char *)section[i].Name, ".rdata") == 0)
         {
-            return memmem(buffer + section[i].PointerToRawData, section[i].SizeOfRawData, sub, m);
-            break;
+            return memmem(buffer + section[i].VirtualAddress, section[i].Misc.VirtualSize, sub, m);
         }
     }
-    return NULL;
+    return nullptr;
 }
-#include <Shlwapi.h>
-#pragma comment(lib, "Shlwapi.lib")
 
-// 获得程序所在文件夹
+// Get application directory path
 std::wstring GetAppDir()
 {
     wchar_t path[MAX_PATH];
-    ::GetModuleFileName(NULL, path, MAX_PATH);
-    ::PathRemoveFileSpec(path);
+    if (!::GetModuleFileNameW(nullptr, path, MAX_PATH))
+        return L"";
+
+    ::PathRemoveFileSpecW(path);
     return path;
 }
 
+// Check if string ends with suffix (case-insensitive)
 bool isEndWith(const wchar_t *s, const wchar_t *sub)
 {
     if (!s || !sub)
         return false;
+
     size_t len1 = wcslen(s);
     size_t len2 = wcslen(sub);
     if (len2 > len1)
         return false;
-    return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
+
+    return _wcsicmp(s + len1 - len2, sub) == 0;
 }
 
-// 获得指定路径的绝对路径，如 "data/../Cache"
+// Get absolute path from relative path
 std::wstring GetAbsolutePath(const std::wstring &path)
 {
+    if (path.empty())
+        return L"";
+
     wchar_t buffer[MAX_PATH];
-    ::GetFullPathNameW(path.c_str(), MAX_PATH, buffer, NULL);
+    if (!::GetFullPathNameW(path.c_str(), MAX_PATH, buffer, nullptr))
+        return path;  // Return original on failure
+
     return buffer;
 }
 
-// 展开环境路径比如 %windir%
+// Expand environment variables in path (e.g., %WINDIR%)
 std::wstring ExpandEnvironmentPath(const std::wstring &path)
 {
+    if (path.empty())
+        return L"";
+
+    // First try with reasonable buffer
     std::vector<wchar_t> buffer(MAX_PATH);
-    size_t expandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0], (DWORD)buffer.size());
-    if (expandedLength > buffer.size())
+    DWORD result = ::ExpandEnvironmentStringsW(path.c_str(), &buffer[0], (DWORD)buffer.size());
+
+    if (result == 0)
+        return path;  // Error, return original
+
+    if (result > buffer.size())
     {
-        buffer.resize(expandedLength);
-        expandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0], (DWORD)buffer.size());
+        // Buffer too small, resize and try again
+        buffer.resize(result);
+        result = ::ExpandEnvironmentStringsW(path.c_str(), &buffer[0], (DWORD)buffer.size());
+        if (result == 0)
+            return path;
     }
-    return std::wstring(&buffer[0], 0, expandedLength);
+
+    // result includes null terminator, so subtract 1
+    return std::wstring(&buffer[0], result - 1);
 }
-// 替换字符串
+
+// Replace all occurrences of 'search' with 'replace' in string (wide char version)
 void ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, const std::wstring &replace)
 {
+    if (search.empty())
+        return;
+
     size_t pos = 0;
     while ((pos = subject.find(search, pos)) != std::wstring::npos)
     {
@@ -141,71 +203,76 @@ void ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, con
     }
 }
 
-// 压缩HTML
-std::string &ltrim(std::string &s)
-{
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) { return !std::isspace(ch); }));
-    return s;
-}
-std::string &rtrim(std::string &s)
-{
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); }).base(), s.end());
-    return s;
-}
-
-std::string &trim(std::string &s)
-{
-    return ltrim(rtrim(s));
-}
-
-std::vector<std::string> split(const std::string &text, char sep)
-{
-    std::vector<std::string> tokens;
-    std::size_t start = 0, end = 0;
-    while ((end = text.find(sep, start)) != std::string::npos)
-    {
-        std::string temp = text.substr(start, end - start);
-        tokens.push_back(temp);
-        start = end + 1;
-    }
-    std::string temp = text.substr(start);
-    tokens.push_back(temp);
-    return tokens;
-}
-
-void compression_html(std::string &html)
-{
-    auto lines = split(html, '\n');
-    html.clear();
-    for (auto &line : lines)
-    {
-        html += "\n";
-        html += trim(line);
-    }
-}
-
-// 替换字符串
+// Replace all occurrences of 'search' with 'replace' in string (narrow char version)
 bool ReplaceStringInPlace(std::string &subject, const std::string &search, const std::string &replace)
 {
-    bool find = false;
+    if (search.empty())
+        return false;
+
+    bool found = false;
     size_t pos = 0;
     while ((pos = subject.find(search, pos)) != std::string::npos)
     {
         subject.replace(pos, search.length(), replace);
         pos += replace.length();
-        find = true;
+        found = true;
     }
-    return find;
+    return found;
 }
-// bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize)
-//{
-//     DWORD ProtectFlag = 0;
-//     if (VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, PAGE_EXECUTE_READWRITE, &ProtectFlag))
-//     {
-//         memcpy(BaseAddress, Buffer, nSize);
-//         FlushInstructionCache(GetCurrentProcess(), BaseAddress, nSize);
-//         VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, ProtectFlag, &ProtectFlag);
-//         return true;
-//     }
-//     return false;
-// }
+
+// String trimming utilities
+inline std::string &ltrim(std::string &s)
+{
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
+    return s;
+}
+
+inline std::string &rtrim(std::string &s)
+{
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+    return s;
+}
+
+inline std::string &trim(std::string &s)
+{
+    return ltrim(rtrim(s));
+}
+
+// Split string by delimiter
+std::vector<std::string> split(const std::string &text, char sep)
+{
+    std::vector<std::string> tokens;
+    size_t start = 0, end = 0;
+
+    while ((end = text.find(sep, start)) != std::string::npos)
+    {
+        tokens.push_back(text.substr(start, end - start));
+        start = end + 1;
+    }
+    tokens.push_back(text.substr(start));
+
+    return tokens;
+}
+
+// Compress HTML by removing extra whitespace
+void compression_html(std::string &html)
+{
+    auto lines = split(html, '\n');
+    html.clear();
+
+    for (auto &line : lines)
+    {
+        trim(line);
+        if (!line.empty())
+        {
+            html += line;
+            html += '\n';
+        }
+    }
+}
+
+#endif // VIVALDI_PLUS_UTILS_H_

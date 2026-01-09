@@ -79,16 +79,19 @@ bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize)
     return false;
 }
 
-// 还原导出函数
+// Install JMP instruction to redirect function calls
+// This modifies the fake export functions to jump directly to the real system DLL
 void InstallJMP(PBYTE BaseAddress, uintptr_t Function)
 {
+    // Skip existing JMP instruction if present
     if (*BaseAddress == 0xE9)
     {
         BaseAddress++;
         BaseAddress = BaseAddress + *(uint32_t *)BaseAddress + 4;
     }
 #ifdef _WIN64
-    BYTE move[] = {0x48, 0xB8}; // move rax,xxL);
+    // 64-bit: mov rax, address; jmp rax
+    BYTE move[] = {0x48, 0xB8}; // mov rax, imm64
     BYTE jump[] = {0xFF, 0xE0}; // jmp rax
 
     WriteMemory(BaseAddress, move, sizeof(move));
@@ -99,6 +102,7 @@ void InstallJMP(PBYTE BaseAddress, uintptr_t Function)
 
     WriteMemory(BaseAddress, jump, sizeof(jump));
 #else
+    // 32-bit: jmp relative
     BYTE jump[] = {0xE9};
     WriteMemory(BaseAddress, jump, sizeof(jump));
     BaseAddress += sizeof(jump);
@@ -114,32 +118,39 @@ void LoadVersion(HINSTANCE hModule)
 {
     PBYTE pImageBase = (PBYTE)hModule;
     PIMAGE_DOS_HEADER pimDH = (PIMAGE_DOS_HEADER)pImageBase;
-    if (pimDH->e_magic == IMAGE_DOS_SIGNATURE)
+    if (pimDH->e_magic != IMAGE_DOS_SIGNATURE)
+        return;
+
+    PIMAGE_NT_HEADERS pimNH = (PIMAGE_NT_HEADERS)(pImageBase + pimDH->e_lfanew);
+    if (pimNH->Signature != IMAGE_NT_SIGNATURE)
+        return;
+
+    PIMAGE_EXPORT_DIRECTORY pimExD = (PIMAGE_EXPORT_DIRECTORY)(pImageBase + pimNH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+
+    // Get export table pointers
+    DWORD *pName = (DWORD *)(pImageBase + pimExD->AddressOfNames);
+    DWORD *pFunction = (DWORD *)(pImageBase + pimExD->AddressOfFunctions);
+    WORD *pNameOrdinals = (WORD *)(pImageBase + pimExD->AddressOfNameOrdinals);
+
+    // Load real system version.dll
+    wchar_t szSysDirectory[MAX_PATH + 1];
+    GetSystemDirectory(szSysDirectory, MAX_PATH);
+
+    wchar_t szDLLPath[MAX_PATH + 1];
+    lstrcpy(szDLLPath, szSysDirectory);
+    lstrcat(szDLLPath, TEXT("\\version.dll"));
+
+    HINSTANCE module = LoadLibrary(szDLLPath);
+    if (!module)
+        return;
+
+    // Redirect all exported functions to real system DLL
+    for (size_t i = 0; i < pimExD->NumberOfNames; i++)
     {
-        PIMAGE_NT_HEADERS pimNH = (PIMAGE_NT_HEADERS)(pImageBase + pimDH->e_lfanew);
-        if (pimNH->Signature == IMAGE_NT_SIGNATURE)
+        uintptr_t Original = (uintptr_t)GetProcAddress(module, (char *)(pImageBase + pName[i]));
+        if (Original)
         {
-            PIMAGE_EXPORT_DIRECTORY pimExD = (PIMAGE_EXPORT_DIRECTORY)(pImageBase + pimNH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
-            DWORD *pName = (DWORD *)(pImageBase + pimExD->AddressOfNames);
-            DWORD *pFunction = (DWORD *)(pImageBase + pimExD->AddressOfFunctions);
-            WORD *pNameOrdinals = (WORD *)(pImageBase + pimExD->AddressOfNameOrdinals);
-
-            wchar_t szSysDirectory[MAX_PATH + 1];
-            GetSystemDirectory(szSysDirectory, MAX_PATH);
-
-            wchar_t szDLLPath[MAX_PATH + 1];
-            lstrcpy(szDLLPath, szSysDirectory);
-            lstrcat(szDLLPath, TEXT("\\version.dll"));
-
-            HINSTANCE module = LoadLibrary(szDLLPath);
-            for (size_t i = 0; i < pimExD->NumberOfNames; i++)
-            {
-                uintptr_t Original = (uintptr_t)GetProcAddress(module, (char *)(pImageBase + pName[i]));
-                if (Original)
-                {
-                    InstallJMP(pImageBase + pFunction[pNameOrdinals[i]], Original);
-                }
-            }
+            InstallJMP(pImageBase + pFunction[pNameOrdinals[i]], Original);
         }
     }
 }

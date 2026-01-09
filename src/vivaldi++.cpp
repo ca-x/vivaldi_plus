@@ -1,8 +1,5 @@
 #include <windows.h>
-#include <stdio.h>
 #include <psapi.h>
-
-HMODULE hInstance;
 
 #include "MinHook.h"
 #include "version.h"
@@ -14,92 +11,137 @@ HMODULE hInstance;
 #include "appid.h"
 #include "green.h"
 
-typedef int (*Startup)();
-Startup ExeMain = NULL;
+// Global module instance
+HMODULE hInstance = nullptr;
 
+// Function pointer to original program entry point
+typedef int (*Startup)();
+static Startup ExeMain = nullptr;
+
+// Apply Vivaldi Plus enhancements
 void VivaldiPlus()
 {
-    // 快捷方式
+    // Set custom AppUserModelID for Windows taskbar
     SetAppId();
 
-    // 便携化补丁
+    // Apply portable mode registry patches
     MakeGreen();
 }
 
+// Handle command line and decide whether to restart in portable mode
 void VivaldiPlusCommand(LPWSTR param)
 {
+    if (!param)
+        return;
+
+    // Check if already running in portable mode (--gopher flag present)
     if (!wcsstr(param, L"--gopher"))
     {
+        // Not in portable mode yet, restart with portable parameters
         Portable(param);
     }
     else
     {
+        // Already in portable mode, apply enhancements
         VivaldiPlus();
     }
 }
 
+// Main loader function called instead of original entry point
 int Loader()
 {
-    // 硬补丁
+    // Install binary patches for Vivaldi (disable update nag, etc.)
     MakePatch();
 
-    // 只关注主界面
+    // Only process main browser process, not child processes
     LPWSTR param = GetCommandLineW();
-    // DebugLog(L"param %s", param);
-    if (!wcsstr(param, L"-type="))
+    if (param && !wcsstr(param, L"-type="))
     {
+        // Main process: handle portable mode
         VivaldiPlusCommand(param);
     }
 
-    // 返回到主程序
-    return ExeMain();
+    // Jump to original program entry point
+    return ExeMain ? ExeMain() : 0;
 }
 
+// Install hook on program entry point
 void InstallLoader()
 {
-    // 获取程序入口点
-    MODULEINFO mi;
-    GetModuleInformation(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(MODULEINFO));
+    // Get current process module information
+    HMODULE hModule = GetModuleHandleW(nullptr);
+    if (!hModule)
+    {
+        DebugLog(L"GetModuleHandle failed: %d", GetLastError());
+        return;
+    }
+
+    MODULEINFO mi = {0};
+    if (!GetModuleInformation(GetCurrentProcess(), hModule, &mi, sizeof(MODULEINFO)))
+    {
+        DebugLog(L"GetModuleInformation failed: %d", GetLastError());
+        return;
+    }
+
     PBYTE entry = (PBYTE)mi.EntryPoint;
+    if (!entry)
+    {
+        DebugLog(L"Entry point is null");
+        return;
+    }
 
-    // 入口点跳转到Loader
+    // Hook the entry point to redirect to our Loader function
     MH_STATUS status = MH_CreateHook(entry, Loader, (LPVOID *)&ExeMain);
-    if (status == MH_OK)
+    if (status != MH_OK)
     {
-        MH_EnableHook(entry);
+        DebugLog(L"MH_CreateHook InstallLoader failed: %d", status);
+        return;
     }
-    else
+
+    status = MH_EnableHook(entry);
+    if (status != MH_OK)
     {
-        DebugLog(L"MH_CreateHook InstallLoader failed:%d", status);
+        DebugLog(L"MH_EnableHook InstallLoader failed: %d", status);
+        return;
     }
 }
-#define EXTERNC extern "C"
 
-//
-EXTERNC __declspec(dllexport) void gopher()
+// Exported marker function for detection
+// This function is referenced in portable.h to verify DLL is loaded
+extern "C" __declspec(dllexport) void gopher()
 {
+    // Empty marker function - used only for DLL identification
 }
 
-EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
+// DLL entry point
+extern "C" BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
 {
-    if (dwReason == DLL_PROCESS_ATTACH)
+    switch (dwReason)
     {
+    case DLL_PROCESS_ATTACH:
         DisableThreadLibraryCalls(hModule);
         hInstance = hModule;
 
-        // 保持系统dll原有功能
+        // Restore original version.dll functionality by loading system DLL
         LoadSysDll(hModule);
 
-        // 初始化HOOK库成功以后安装加载器
+        // Initialize MinHook library
         MH_STATUS status = MH_Initialize();
-        if (status == MH_OK)
+        if (status != MH_OK)
         {
-            InstallLoader();
+            DebugLog(L"MH_Initialize failed: %d", status);
+            return TRUE;  // Return TRUE to allow process to continue
         }
-        else
-        {
-            DebugLog(L"MH_Initialize failed:%d", status);
-        }
+
+        // Install our loader hook
+        InstallLoader();
+        break;
+
+    case DLL_PROCESS_DETACH:
+        // Cleanup MinHook
+        MH_Uninitialize();
+        break;
     }
+
     return TRUE;
 }
