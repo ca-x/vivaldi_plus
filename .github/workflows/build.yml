@@ -1,54 +1,111 @@
 name: build
 
 on:
-  workflow_dispatch:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
 
 jobs:
   build:
     strategy:
       matrix:
-        include: [{ name: windows_x86, arch: x86 },{ name: windows_x64, arch: x64 }]
+        include:
+          [{ name: windows_x86, arch: x86 }, { name: windows_x64, arch: x64 }]
 
     name: ${{ matrix.name }}
 
     runs-on: windows-latest
 
     steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with:
-        submodules: 'true'
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: "true"
 
-    - name: setup VC-LTL
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: nuget install VC-LTL
+      - name: setup VC-LTL
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: nuget install VC-LTL
 
-    - name: setup xmake
-      uses: xmake-io/github-action-setup-xmake@v1
+      - name: setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
 
-    - name: configure
-      run: xmake f -a ${{ matrix.arch }}
+      - name: configure
+        run: xmake f -a ${{ matrix.arch }}
 
-    - name: build
-      run: xmake
+      - name: build
+        run: xmake
 
-    - name: package
-      run: |
-        cd build/release
-        7z a ../../${{ matrix.name }}.zip version.dll
+      - name: package
+        run: |
+          cd build/release
+          7z a ../../${{ matrix.name }}.zip version.dll
+          cd ../..
+          # Also copy config examples to release
+          7z a ${{ matrix.name }}.zip config.ini.example config.ini.example.zh-CN
 
-    - name: upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.name }}
-        path: ${{ matrix.name }}.zip
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.name }}.zip
 
-    - name: upload to release
-      if: github.event_name == 'release'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ${{ matrix.name }}.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Display downloaded files
+        run: |
+          ls -R dist/
+          mkdir -p release/
+          find dist/ -name "*.zip" -exec cp {} release/ \;
+          ls -lh release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*
+          draft: false
+          prerelease: true
+          generate_release_notes: true
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Vivaldi++ ${{ github.ref_name }}
+
+            ### 下载 / Download
+            - **windows_x64.zip** - 64位版本 (推荐 / Recommended)
+            - **windows_x86.zip** - 32位版本
+
+            ### 使用方法 / Usage
+            1. 解压下载的zip文件 / Extract the downloaded zip file
+            2. 将 `version.dll` 复制到 Vivaldi 安装目录 / Copy `version.dll` to Vivaldi installation directory
+            3. （可选）复制 `config.ini.example` 为 `config.ini` 并根据需要配置 / (Optional) Copy `config.ini.example` to `config.ini` and configure
+            4. 启动 Vivaldi / Start Vivaldi
+
+            ### 新功能 / New Features
+            - ✅ 老板键支持 - 一键隐藏窗口和静音 / Boss Key - Hide windows and mute audio with hotkey
+            - ✅ C++20 代码现代化 / C++20 modernization
+
+            ### 配置老板键 / Configure Boss Key
+            在 `config.ini` 中添加：/ Add to `config.ini`:
+            ```ini
+            [hotkey]
+            boss_key=Ctrl+Alt+B
+            ```
+
+            ---
+            完整更新日志见下方 / Full changelog below
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
