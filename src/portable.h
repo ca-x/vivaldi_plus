@@ -259,9 +259,9 @@ ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring> &args)
     result.final_args.reserve(args.size() + 4);
 
     std::wstring combined_features;
-    constexpr std::wstring_view disable_features_prefix = L"--disable-features=";
-    constexpr std::wstring_view user_data_dir_prefix = L"--user-data-dir=";
-    constexpr std::wstring_view disk_cache_dir_prefix = L"--disk-cache-dir=";
+    const std::wstring disable_features_prefix = L"--disable-features=";
+    const std::wstring user_data_dir_prefix = L"--user-data-dir=";
+    const std::wstring disk_cache_dir_prefix = L"--disk-cache-dir=";
 
     for (const auto &arg : args)
     {
@@ -305,7 +305,7 @@ ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring> &args)
     // Rebuild the final argument list with a single merged --disable-features flag
     if (!combined_features.empty())
     {
-        result.final_args.push_back(std::wstring(disable_features_prefix) + combined_features);
+        result.final_args.push_back(disable_features_prefix + combined_features);
     }
 
     return result;
@@ -370,19 +370,23 @@ std::wstring GetCommand(LPWSTR param)
 
     // Split off --single-argument if present
     std::wstring command_line(param);
-    auto [prefix, suffix] = SplitSingleArgumentSwitch(command_line);
+    std::pair<std::wstring, std::wstring> split_result = SplitSingleArgumentSwitch(command_line);
+    std::wstring prefix = split_result.first;
+    std::wstring suffix = split_result.second;
 
     // Parse the command line arguments (skipping executable name)
-    auto args = ParseCommandLineArgs(prefix);
+    std::vector<std::wstring> args = ParseCommandLineArgs(prefix);
 
     // Separate arguments before and after the `--` sentinel
-    auto [main_args, trailing_args] = SeparateSentinelArgs(std::move(args));
+    std::pair<std::vector<std::wstring>, std::vector<std::wstring>> separated = SeparateSentinelArgs(std::move(args));
+    std::vector<std::wstring> main_args = std::move(separated.first);
+    std::vector<std::wstring> trailing_args = std::move(separated.second);
 
     // Add marker flag to indicate portable mode is active
     main_args.insert(main_args.begin(), L"--gopher");
 
     // Process and merge --disable-features flags
-    auto processed = ProcessAndMergeArgs(main_args);
+    ProcessedArgs processed = ProcessAndMergeArgs(main_args);
 
     // Inject custom directories if not already specified by user
     InjectConfigPaths(processed.final_args, processed.has_user_data_dir, processed.has_disk_cache_dir);
