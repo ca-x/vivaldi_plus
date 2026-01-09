@@ -21,7 +21,7 @@
 #include "FastSearch.h"
 
 // String formatting utilities
-std::wstring Format(const wchar_t *format, va_list args)
+inline std::wstring Format(const wchar_t *format, va_list args)
 {
     if (!format)
         return L"";
@@ -40,7 +40,7 @@ std::wstring Format(const wchar_t *format, va_list args)
     return std::wstring(&buffer[0]);
 }
 
-std::wstring Format(const wchar_t *format, ...)
+inline std::wstring Format(const wchar_t *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -50,7 +50,7 @@ std::wstring Format(const wchar_t *format, ...)
 }
 
 // Debug logging to OutputDebugString
-void DebugLog(const wchar_t *format, ...)
+inline void DebugLog(const wchar_t *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -62,13 +62,13 @@ void DebugLog(const wchar_t *format, ...)
 }
 
 // Memory search wrapper
-uint8_t *memmem(uint8_t *src, int n, const uint8_t *sub, int m)
+inline uint8_t *memmem(uint8_t *src, int n, const uint8_t *sub, int m)
 {
     return (uint8_t *)FastSearch(src, n, sub, m);
 }
 
 // Search for byte pattern in PE module's .text section
-uint8_t *SearchModuleRaw(HMODULE module, const uint8_t *sub, int m)
+inline uint8_t *SearchModuleRaw(HMODULE module, const uint8_t *sub, int m)
 {
     if (!module || !sub || m <= 0)
         return nullptr;
@@ -101,7 +101,7 @@ uint8_t *SearchModuleRaw(HMODULE module, const uint8_t *sub, int m)
 }
 
 // Search for byte pattern in PE module's .rdata section
-uint8_t *SearchModuleRaw2(HMODULE module, const uint8_t *sub, int m)
+inline uint8_t *SearchModuleRaw2(HMODULE module, const uint8_t *sub, int m)
 {
     if (!module || !sub || m <= 0)
         return nullptr;
@@ -134,7 +134,7 @@ uint8_t *SearchModuleRaw2(HMODULE module, const uint8_t *sub, int m)
 }
 
 // Get application directory path
-std::wstring GetAppDir()
+inline std::wstring GetAppDir()
 {
     wchar_t path[MAX_PATH];
     if (!::GetModuleFileNameW(nullptr, path, MAX_PATH))
@@ -145,7 +145,7 @@ std::wstring GetAppDir()
 }
 
 // Check if string ends with suffix (case-insensitive)
-bool isEndWith(const wchar_t *s, const wchar_t *sub)
+inline bool isEndWith(const wchar_t *s, const wchar_t *sub)
 {
     if (!s || !sub)
         return false;
@@ -159,7 +159,7 @@ bool isEndWith(const wchar_t *s, const wchar_t *sub)
 }
 
 // Get absolute path from relative path
-std::wstring GetAbsolutePath(std::wstring_view path)
+inline std::wstring GetAbsolutePath(std::wstring_view path)
 {
     if (path.empty())
         return L"";
@@ -172,7 +172,7 @@ std::wstring GetAbsolutePath(std::wstring_view path)
 }
 
 // Expand environment variables in path (e.g., %WINDIR%)
-std::wstring ExpandEnvironmentPath(std::wstring_view path)
+inline std::wstring ExpandEnvironmentPath(std::wstring_view path)
 {
     if (path.empty())
         return L"";
@@ -198,7 +198,7 @@ std::wstring ExpandEnvironmentPath(std::wstring_view path)
 }
 
 // Replace all occurrences of 'search' with 'replace' in string (wide char version)
-void ReplaceStringInPlace(std::wstring &subject, std::wstring_view search, std::wstring_view replace)
+inline void ReplaceStringInPlace(std::wstring &subject, std::wstring_view search, std::wstring_view replace)
 {
     if (search.empty())
         return;
@@ -212,7 +212,7 @@ void ReplaceStringInPlace(std::wstring &subject, std::wstring_view search, std::
 }
 
 // Replace all occurrences of 'search' with 'replace' in string (narrow char version)
-bool ReplaceStringInPlace(std::string &subject, std::string_view search, std::string_view replace)
+inline bool ReplaceStringInPlace(std::string &subject, std::string_view search, std::string_view replace)
 {
     if (search.empty())
         return false;
@@ -269,7 +269,7 @@ std::vector<std::string> split(const std::string &text, char sep)
 }
 
 // Compress HTML by removing extra whitespace
-void compression_html(std::string &html)
+inline void compression_html(std::string &html)
 {
     auto lines = split(html, '\n');
     html.clear();

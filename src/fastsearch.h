@@ -11,7 +11,7 @@ static inline const uint8_t *ForceSearch(const uint8_t *s, int n, const uint8_t 
 }
 
 // Sunday algorithm for longer patterns
-static const uint8_t *SundaySearch(const uint8_t *s, int n, const uint8_t *p, int m)
+static inline const uint8_t *SundaySearch(const uint8_t *s, int n, const uint8_t *p, int m)
 {
     int skip[256];
 
@@ -58,7 +58,8 @@ static const uint8_t *SundaySearch(const uint8_t *s, int n, const uint8_t *p, in
 }
 
 // Main search function with automatic algorithm selection
-const uint8_t *FastSearch(const uint8_t *s, int n, const uint8_t *p, int m)
+// Main search function - automatically selects best algorithm based on pattern length
+static inline const uint8_t *FastSearch(const uint8_t *s, int n, const uint8_t *p, int m)
 {
     // Boundary checks
     if (!s || !p || n < m || m < 0 || n < 0)
