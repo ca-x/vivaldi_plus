@@ -1,4 +1,6 @@
-includes("VC-LTL5.lua")
+if not is_arch("arm64") then
+    includes("VC-LTL5.lua")
+end
 
 add_rules("mode.debug", "mode.release")
 
@@ -11,6 +13,9 @@ if is_mode("release") then
     add_defines("NDEBUG")
     add_cxflags("/O2", "/Os", "/Gy", "/MT", "/EHsc", "/fp:precise")
     add_ldflags("/DYNAMICBASE", "/LTCG")
+    if not is_arch("arm64") then
+        add_requires("vc-ltl5")
+    end
 end
 
 add_cxflags("/utf-8")
@@ -47,6 +52,9 @@ target("vivaldi_plus")
     add_files("src/*.cpp")
     add_files("src/*.rc")
     add_links("user32", "crypt32", "propsys", "netapi32")
+    if is_mode("release") and not is_arch("arm64") then
+        add_packages("vc-ltl5")
+    end
     after_build(function (target)
         local builddir = "$(builddir)/$(mode)/$(arch)"
         os.rm(builddir .. "/version.exp")
