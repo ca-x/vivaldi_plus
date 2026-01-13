@@ -46,7 +46,7 @@ target("vivaldi_plus")
     add_deps("detours")
     add_files("src/*.cpp")
     add_files("src/*.rc")
-    add_links("user32")
+    add_links("user32", "crypt32", "propsys", "netapi32")
     after_build(function (target)
         local builddir = "$(builddir)/$(mode)/$(arch)"
         os.rm(builddir .. "/version.exp")
