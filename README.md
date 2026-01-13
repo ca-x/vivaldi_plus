@@ -1,7 +1,7 @@
 # Vivaldi Plus
 
 [![nightly build](https://github.com/ca-x/vivaldi_plus/actions/workflows/nightly.yml/badge.svg)](https://github.com/ca-x/vivaldi_plus/actions/workflows/nightly.yml)
-[![release build](https://github.com/ca-x/vivaldi_plus/actions/workflows/build.yml/badge.svg)](https://github.com/ca-x/vivaldi_plus/actions/workflows/build.yml)
+[![release build](https://github.com/ca-x/vivaldi_plus/actions/workflows/release.yml/badge.svg)](https://github.com/ca-x/vivaldi_plus/actions/workflows/release.yml)
 
 [**中文**](#中文) | [**English**](#english)
 
