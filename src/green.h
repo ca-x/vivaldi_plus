@@ -79,7 +79,7 @@ BOOL WINAPI MyCryptUnprotectData(
     return true;
 }
 
-typedef DWORD(WINAPI *pLogonUserW)(
+typedef BOOL(WINAPI *pLogonUserW)(
     LPCWSTR lpszUsername,
     LPCWSTR lpszDomain,
     LPCWSTR lpszPassword,
@@ -89,7 +89,7 @@ typedef DWORD(WINAPI *pLogonUserW)(
 
 pLogonUserW RawLogonUserW = NULL;
 
-DWORD WINAPI MyLogonUserW(
+BOOL WINAPI MyLogonUserW(
     LPCWSTR lpszUsername,
     LPCWSTR lpszDomain,
     LPCWSTR lpszPassword,
@@ -97,7 +97,7 @@ DWORD WINAPI MyLogonUserW(
     DWORD dwLogonProvider,
     PHANDLE phToken)
 {
-    DWORD ret = RawLogonUserW(lpszUsername, lpszDomain, lpszPassword, dwLogonType, dwLogonProvider, phToken);
+    BOOL ret = RawLogonUserW(lpszUsername, lpszDomain, lpszPassword, dwLogonType, dwLogonProvider, phToken);
 
     SetLastError(ERROR_ACCOUNT_RESTRICTION);
     return ret;
