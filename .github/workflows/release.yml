@@ -16,7 +16,7 @@ jobs:
           [
             { name: windows_x86, arch: x86 },
             { name: windows_x64, arch: x64 },
-            { name: windows_arm64, arch: arm64 }
+            { name: windows_arm64, arch: arm64 },
           ]
 
     name: ${{ matrix.name }}
@@ -48,14 +48,12 @@ jobs:
           cp build/release/${{ matrix.arch }}/version.dll package/
           cp config.ini.example package/
           cp config.ini.example.zh-CN package/
-          cd package
-          7z a ../${{ matrix.name }}.zip *
 
       - name: upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
-          path: ${{ matrix.name }}.zip
+          path: package/
           compression-level: 0
 
   release:
@@ -76,7 +74,9 @@ jobs:
         run: |
           ls -R dist/
           mkdir -p release/
-          find dist/ -name "*.zip" -exec cp {} release/ \;
+          cd dist/windows_x86 && zip -r ../../release/windows_x86.zip * && cd ../..
+          cd dist/windows_x64 && zip -r ../../release/windows_x64.zip * && cd ../..
+          cd dist/windows_arm64 && zip -r ../../release/windows_arm64.zip * && cd ../..
           ls -lh release/
 
       - name: Create Release
@@ -119,8 +119,8 @@ jobs:
             ### 配置老板键 / Configure Boss Key
             在 `config.ini` 中添加：/ Add to `config.ini`:
             ```ini
-            [hotkey]
-            boss_key=Ctrl+Alt+B
+                        [hotkey]
+                        boss_key=Ctrl+Alt+B
             ```
 
             ---

@@ -3,9 +3,9 @@ name: nightly
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -15,7 +15,7 @@ jobs:
           [
             { name: windows_x86, arch: x86 },
             { name: windows_x64, arch: x64 },
-            { name: windows_arm64, arch: arm64 }
+            { name: windows_arm64, arch: arm64 },
           ]
 
     name: ${{ matrix.name }}
@@ -26,7 +26,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
         with:
-          submodules: 'true'
+          submodules: "true"
 
       - name: setup VC-LTL
         working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -47,12 +47,10 @@ jobs:
           cp build/release/${{ matrix.arch }}/version.dll package/
           cp config.ini.example package/
           cp config.ini.example.zh-CN package/
-          cd package
-          7z a ../${{ matrix.name }}.zip *
 
       - name: upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
-          path: ${{ matrix.name }}.zip
+          path: package/
           compression-level: 0
