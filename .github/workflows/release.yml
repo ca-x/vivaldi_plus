@@ -56,6 +56,7 @@ jobs:
         with:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}.zip
+          compression-level: 0
 
   release:
     name: Create Release
