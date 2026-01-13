@@ -37,6 +37,17 @@ BOOL WINAPI MyCryptProtectData(
     return true;
 }
 
+typedef BOOL(WINAPI *pCryptProtectData)(
+    _In_ DATA_BLOB *pDataIn,
+    _In_opt_ LPCWSTR szDataDescr,
+    _In_opt_ DATA_BLOB *pOptionalEntropy,
+    _Reserved_ PVOID pvReserved,
+    _In_opt_ CRYPTPROTECT_PROMPTSTRUCT *pPromptStruct,
+    _In_ DWORD dwFlags,
+    _Out_ DATA_BLOB *pDataOut);
+
+pCryptProtectData RawCryptProtectData = NULL;
+
 typedef BOOL(WINAPI *pCryptUnprotectData)(
     _In_ DATA_BLOB *pDataIn,
     _Out_opt_ LPWSTR *ppszDataDescr,
@@ -146,7 +157,9 @@ NET_API_STATUS WINAPI MyNetUserGetInfo(
 }
 
 #define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON (0x00000001ui64 << 44)
+#ifndef PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON
 #define PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON (0x00000001ui64 << 28)
+#endif
 
 typedef BOOL(WINAPI *pUpdateProcThreadAttribute)(
     LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,

@@ -1,6 +1,7 @@
 #include <shobjidl.h>
 #include <propkey.h>
 #include <propvarutil.h>
+#include "detours.h"
 
 typedef HRESULT(WINAPI *pPSStringFromPropertyKey)(
     REFPROPERTYKEY pkey,
@@ -27,16 +28,17 @@ HRESULT WINAPI MyPSStringFromPropertyKey(
 
 void SetAppId()
 {
-    HMODULE Propsys = LoadLibrary(L"Propsys.dll");
+    // Initialize function pointer with original API address
+    RawPSStringFromPropertyKey = PSStringFromPropertyKey;
 
-    PBYTE PSStringFromPropertyKey = (PBYTE)GetProcAddress(Propsys, "PSStringFromPropertyKey");
-    MH_STATUS status = MH_CreateHook(PSStringFromPropertyKey, MyPSStringFromPropertyKey, (LPVOID *)&RawPSStringFromPropertyKey);
-    if (status == MH_OK)
+    // Create hook using Detours
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawPSStringFromPropertyKey),
+                 reinterpret_cast<void*>(MyPSStringFromPropertyKey));
+    LONG status = DetourTransactionCommit();
+    if (status != NO_ERROR)
     {
-        MH_EnableHook(PSStringFromPropertyKey);
-    }
-    else
-    {
-        DebugLog(L"MH_CreateHook PSStringFromPropertyKey failed:%d", status);
+        DebugLog(L"DetourAttach PSStringFromPropertyKey failed: %d", status);
     }
 }
