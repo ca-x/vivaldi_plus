@@ -43,10 +43,12 @@ jobs:
 
       - name: package
         run: |
-          cd build/release/${{ matrix.arch }}
-          7z a ../../../${{ matrix.name }}.zip version.dll
-          cd ../../..
-          7z a ${{ matrix.name }}.zip config.ini.example config.ini.example.zh-CN
+          mkdir -p package
+          cp build/release/${{ matrix.arch }}/version.dll package/
+          cp config.ini.example package/
+          cp config.ini.example.zh-CN package/
+          cd package
+          7z a ../${{ matrix.name }}.zip *
 
       - name: upload artifact
         uses: actions/upload-artifact@v4
