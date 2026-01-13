@@ -37,7 +37,7 @@ jobs:
         uses: xmake-io/github-action-setup-xmake@v1
 
       - name: configure
-        run: xmake f -a ${{ matrix.arch }} -m release
+        run: xmake f -a ${{ matrix.arch }} -m release -y
 
       - name: build
         run: xmake
