@@ -1,4 +1,5 @@
 #include <lmaccess.h>
+#include "detours.h"
 #include "config.h"  // For Config::Instance()
 
 BOOL WINAPI FakeGetComputerName(
@@ -194,118 +195,34 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
 
 void MakeGreen()
 {
-    HMODULE kernel32 = LoadLibraryW(L"kernel32.dll");
-    if (kernel32)
+    // Initialize function pointers with original API addresses
+    auto RawGetComputerNameW = GetComputerNameW;
+    auto RawGetVolumeInformationW = GetVolumeInformationW;
+    RawUpdateProcThreadAttribute = UpdateProcThreadAttribute;
+    RawCryptProtectData = CryptProtectData;
+    RawCryptUnprotectData = CryptUnprotectData;
+    RawLogonUserW = LogonUserW;
+    RawIsOS = IsOS;
+    RawNetUserGetInfo = NetUserGetInfo;
+
+    // Begin Detours transaction to install all hooks atomically
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+
+    // Attach hooks for portable mode support
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawGetComputerNameW), reinterpret_cast<void*>(FakeGetComputerName));
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawGetVolumeInformationW), reinterpret_cast<void*>(FakeGetVolumeInformation));
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawUpdateProcThreadAttribute), reinterpret_cast<void*>(MyUpdateProcThreadAttribute));
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawCryptProtectData), reinterpret_cast<void*>(MyCryptProtectData));
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawCryptUnprotectData), reinterpret_cast<void*>(MyCryptUnprotectData));
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawLogonUserW), reinterpret_cast<void*>(MyLogonUserW));
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawIsOS), reinterpret_cast<void*>(MyIsOS));
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawNetUserGetInfo), reinterpret_cast<void*>(MyNetUserGetInfo));
+
+    // Commit all hooks in one transaction
+    LONG status = DetourTransactionCommit();
+    if (status != NO_ERROR)
     {
-        PBYTE GetComputerNameW = (PBYTE)GetProcAddress(kernel32, "GetComputerNameW");
-        PBYTE GetVolumeInformationW = (PBYTE)GetProcAddress(kernel32, "GetVolumeInformationW");
-
-        MH_STATUS status = MH_CreateHook(GetComputerNameW, FakeGetComputerName, NULL);
-        if (status == MH_OK)
-        {
-            MH_EnableHook(GetComputerNameW);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook GetComputerNameW failed:%d", status);
-        }
-        status = MH_CreateHook(GetVolumeInformationW, FakeGetVolumeInformation, NULL);
-        if (status == MH_OK)
-        {
-            MH_EnableHook(GetVolumeInformationW);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook GetVolumeInformationW failed:%d", status);
-        }
-    }
-
-    // components/os_crypt/os_crypt_win.cc
-    HMODULE Crypt32 = LoadLibraryW(L"Crypt32.dll");
-    if (Crypt32)
-    {
-        PBYTE CryptProtectData = (PBYTE)GetProcAddress(Crypt32, "CryptProtectData");
-        PBYTE CryptUnprotectData = (PBYTE)GetProcAddress(Crypt32, "CryptUnprotectData");
-
-        MH_STATUS status = MH_CreateHook(CryptProtectData, MyCryptProtectData, NULL);
-        if (status == MH_OK)
-        {
-            MH_EnableHook(CryptProtectData);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook CryptProtectData failed:%d", status);
-        }
-        status = MH_CreateHook(CryptUnprotectData, MyCryptUnprotectData, (LPVOID *)&RawCryptUnprotectData);
-        if (status == MH_OK)
-        {
-            MH_EnableHook(CryptUnprotectData);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook CryptUnprotectData failed:%d", status);
-        }
-    }
-
-    HMODULE Advapi32 = LoadLibraryW(L"Advapi32.dll");
-    if (Advapi32)
-    {
-        PBYTE LogonUserW = (PBYTE)GetProcAddress(Advapi32, "LogonUserW");
-
-        MH_STATUS status = MH_CreateHook(LogonUserW, MyLogonUserW, (LPVOID *)&RawLogonUserW);
-        if (status == MH_OK)
-        {
-            // DebugLog(L"MH_EnableHook LogonUserW");
-            MH_EnableHook(LogonUserW);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook LogonUserW failed:%d", status);
-        }
-    }
-
-    HMODULE Shlwapi = LoadLibraryW(L"Shlwapi.dll");
-    if (Shlwapi)
-    {
-        PBYTE IsOS = (PBYTE)GetProcAddress(Shlwapi, "IsOS");
-
-        MH_STATUS status = MH_CreateHook(IsOS, MyIsOS, (LPVOID *)&RawIsOS);
-        if (status == MH_OK)
-        {
-            // DebugLog(L"MH_EnableHook IsOS");
-            MH_EnableHook(IsOS);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook IsOS failed:%d", status);
-        }
-    }
-
-    HMODULE Netapi32 = LoadLibraryW(L"Netapi32.dll");
-    if (Netapi32)
-    {
-        PBYTE NetUserGetInfo = (PBYTE)GetProcAddress(Netapi32, "NetUserGetInfo");
-
-        MH_STATUS status = MH_CreateHook(NetUserGetInfo, MyNetUserGetInfo, (LPVOID *)&RawNetUserGetInfo);
-        if (status == MH_OK)
-        {
-            MH_EnableHook(NetUserGetInfo);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook NetUserGetInfo failed:%d", status);
-        }
-    }
-
-    LPVOID ppUpdateProcThreadAttribute = nullptr;
-    MH_STATUS status = MH_CreateHookApiEx(L"kernel32", "UpdateProcThreadAttribute",
-                                          &MyUpdateProcThreadAttribute, (LPVOID *)&RawUpdateProcThreadAttribute, &ppUpdateProcThreadAttribute);
-    if (status == MH_OK)
-    {
-        MH_EnableHook(ppUpdateProcThreadAttribute);
-    }
-    else
-    {
-        DebugLog(L"MH_CreateHookApiEx UpdateProcThreadAttribute failed: %d", status);
+        DebugLog(L"MakeGreen DetourTransactionCommit failed: %d", status);
     }
 }

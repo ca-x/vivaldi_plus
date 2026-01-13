@@ -13,7 +13,11 @@ jobs:
     strategy:
       matrix:
         include:
-          [{ name: windows_x86, arch: x86 }, { name: windows_x64, arch: x64 }]
+          [
+            { name: windows_x86, arch: x86 },
+            { name: windows_x64, arch: x64 },
+            { name: windows_arm64, arch: arm64 }
+          ]
 
     name: ${{ matrix.name }}
 
@@ -33,16 +37,16 @@ jobs:
         uses: xmake-io/github-action-setup-xmake@v1
 
       - name: configure
-        run: xmake f -a ${{ matrix.arch }}
+        run: xmake f -a ${{ matrix.arch }} -m release
 
       - name: build
         run: xmake
 
       - name: package
         run: |
-          cd build/release
-          7z a ../../${{ matrix.name }}.zip version.dll
-          cd ../..
+          cd build/release/${{ matrix.arch }}
+          7z a ../../../${{ matrix.name }}.zip version.dll
+          cd ../../..
           # Also copy config examples to release
           7z a ${{ matrix.name }}.zip config.ini.example config.ini.example.zh-CN
 
@@ -86,17 +90,29 @@ jobs:
 
             ### 下载 / Download
             - **windows_x64.zip** - 64位版本 (推荐 / Recommended)
+            - **windows_arm64.zip** - ARM64版本 (Windows on ARM 设备 / Windows on ARM devices)
             - **windows_x86.zip** - 32位版本
 
-            ### 使用方法 / Usage
-            1. 解压下载的zip文件 / Extract the downloaded zip file
-            2. 将 `version.dll` 复制到 Vivaldi 安装目录 / Copy `version.dll` to Vivaldi installation directory
-            3. （可选）复制 `config.ini.example` 为 `config.ini` 并根据需要配置 / (Optional) Copy `config.ini.example` to `config.ini` and configure
-            4. 启动 Vivaldi / Start Vivaldi
+            ### 架构说明 / Architecture Notes
+            - **x64**: 适用于现代 64 位 Windows 系统 / For modern 64-bit Windows systems
+            - **ARM64**: 适用于 Windows on ARM 设备（如 Surface Pro X、Snapdragon 笔记本） / For Windows on ARM devices (Surface Pro X, Snapdragon laptops)
+            - **x86**: 适用于传统 32 位 Windows 系统 / For legacy 32-bit Windows systems
 
-            ### 新功能 / New Features
+            ### 技术更新 / Technical Updates
+            - 🔄 **迁移到 Microsoft Detours** - 从 MinHook 迁移以支持 ARM64 / Migrated from MinHook for ARM64 support
+            - ✅ **ARM64 支持** - 完整支持 Windows on ARM 设备 / Full Windows on ARM support
+
+            ### 使用方法 / Usage
+            1. 根据你的系统架构选择对应的zip文件 / Choose the zip file for your system architecture
+            2. 解压下载的zip文件 / Extract the downloaded zip file
+            3. 将 `version.dll` 复制到 Vivaldi 安装目录 / Copy `version.dll` to Vivaldi installation directory
+            4. （可选）复制 `config.ini.example` 为 `config.ini` 并根据需要配置 / (Optional) Copy `config.ini.example` to `config.ini` and configure
+            5. 启动 Vivaldi / Start Vivaldi
+
+            ### 功能特性 / Features
             - ✅ 老板键支持 - 一键隐藏窗口和静音 / Boss Key - Hide windows and mute audio with hotkey
-            - ✅ C++20 代码现代化 / C++20 modernization
+            - ✅ 便携模式 - 数据与程序分离 / Portable mode - Data and app separation
+            - ✅ 密码便携化 - 跨机器使用 / Password portability - Cross-machine usage
 
             ### 配置老板键 / Configure Boss Key
             在 `config.ini` 中添加：/ Add to `config.ini`:

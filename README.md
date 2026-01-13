@@ -1,6 +1,7 @@
 # Vivaldi Plus
 
-[![build status](https://github.com/czyt/vivaldi_plus/actions/workflows/build.yml/badge.svg)](https://github.com/czyt/vivaldi_plus/actions/workflows/build.yml)
+[![nightly build](https://github.com/ca-x/vivaldi_plus/actions/workflows/nightly.yml/badge.svg)](https://github.com/ca-x/vivaldi_plus/actions/workflows/nightly.yml)
+[![release build](https://github.com/ca-x/vivaldi_plus/actions/workflows/build.yml/badge.svg)](https://github.com/ca-x/vivaldi_plus/actions/workflows/build.yml)
 
 [**中文**](#中文) | [**English**](#english)
 
@@ -183,14 +184,39 @@ boss_key=
 
 详细配置说明请查看 `config.ini.example.zh-CN` 文件。
 
+### 架构支持
+
+Vivaldi Plus 现在支持多种 CPU 架构：
+
+- **x86** (32位) - 传统 32 位 Windows 系统
+- **x64** (64位) - 现代 64 位 Windows 系统
+- **ARM64** - Windows on ARM 设备（如 Surface Pro X、Snapdragon 笔记本等）
+
+#### 为什么使用 Microsoft Detours？
+
+随着 Vivaldi 浏览器推出 ARM64 版本以支持 Windows on ARM 设备，原有的 MinHook 库无法满足需求，因为 **MinHook 不支持 ARM64 架构**。
+
+为了让 Vivaldi Plus 能够在所有架构上运行，我们已将 hook 库从 MinHook 迁移到 [Microsoft Detours](https://github.com/microsoft/Detours)：
+
+- ✅ **完整的架构支持** - Detours 原生支持 x86、x64 和 ARM64
+- ✅ **微软官方维护** - 由 Microsoft 开发和维护，稳定可靠
+- ✅ **成熟的生态** - 被广泛应用于 Windows 平台的各类工具中
+- ✅ **更好的兼容性** - 与 Windows on ARM 完美兼容
+
+现在，无论你使用什么架构的 Windows 设备，都可以享受 Vivaldi Plus 带来的便携化体验！
+
 ### 下载与安装
 
 #### 获取Vivaldi浏览器
 请访问 https://vivaldi.czyt.tech 获取下载链接
 
 #### 获取Vivaldi Plus
-- **Release版本**：从 [Releases](https://github.com/ca-x/vivaldi_plus/releases) 页面下载
-- **开发版本**：[Powered by nightly.link](https://nightly.link/ca-x/vivaldi_plus/workflows/build/main)
+- **稳定版本（Stable）**：从 [Releases](https://github.com/ca-x/vivaldi_plus/releases) 页面下载
+- **开发版本（Nightly）**：[Powered by nightly.link](https://nightly.link/ca-x/vivaldi_plus/workflows/nightly/main) - 每次代码推送后自动构建
+
+> **版本说明：**
+> - **Stable (稳定版)**：经过测试的正式版本，推荐大多数用户使用
+> - **Nightly (开发版)**：包含最新功能和修复，但可能不够稳定
 
 #### 安装方法
 将 `version.dll` 放入解压版Vivaldi目录（`vivaldi.exe` 同目录）即可
@@ -198,19 +224,25 @@ boss_key=
 ### 构建
 
 ```bash
-# 安装xmake
-# 克隆仓库
+# 安装 xmake
+# 克隆仓库（注意使用 --recursive 参数以包含 Detours 子模块）
 git clone --recursive https://github.com/ca-x/vivaldi_plus.git
 cd vivaldi_plus
 
-# 构建 x64
-xmake f -a x64
+# 构建 x64 (推荐)
+xmake f -a x64 -m release
 xmake
 
-# 构建 x86
-xmake f -a x86
+# 构建 ARM64 (Windows on ARM)
+xmake f -a arm64 -m release
+xmake
+
+# 构建 x86 (32位)
+xmake f -a x86 -m release
 xmake
 ```
+
+编译后的 DLL 将输出到 `build/release/<架构>/version.dll`
 
 ### 源项目
 基于 [chromePlus](https://github.com/icy37785/chrome_plus) 项目
@@ -396,14 +428,39 @@ boss_key=
 
 For detailed configuration documentation, see `config.ini.example` file.
 
+### Architecture Support
+
+Vivaldi Plus now supports multiple CPU architectures:
+
+- **x86** (32-bit) - Legacy 32-bit Windows systems
+- **x64** (64-bit) - Modern 64-bit Windows systems
+- **ARM64** - Windows on ARM devices (Surface Pro X, Snapdragon laptops, etc.)
+
+#### Why Microsoft Detours?
+
+With Vivaldi browser releasing ARM64 builds to support Windows on ARM devices, the original MinHook library couldn't meet our needs because **MinHook doesn't support ARM64 architecture**.
+
+To enable Vivaldi Plus on all architectures, we've migrated from MinHook to [Microsoft Detours](https://github.com/microsoft/Detours):
+
+- ✅ **Complete architecture support** - Detours natively supports x86, x64, and ARM64
+- ✅ **Official Microsoft maintenance** - Developed and maintained by Microsoft, stable and reliable
+- ✅ **Mature ecosystem** - Widely used in various Windows platform tools
+- ✅ **Better compatibility** - Perfect compatibility with Windows on ARM
+
+Now you can enjoy Vivaldi Plus's portable experience on any Windows device architecture!
+
 ### Download & Installation
 
 #### Get Vivaldi Browser
 Visit https://vivaldi.czyt.tech for download links
 
 #### Get Vivaldi Plus
-- **Release builds**: Download from [Releases](https://github.com/ca-x/vivaldi_plus/releases) page
-- **Development builds**: [Powered by nightly.link](https://nightly.link/ca-x/vivaldi_plus/workflows/build/main)
+- **Stable Builds**: Download from [Releases](https://github.com/ca-x/vivaldi_plus/releases) page
+- **Nightly Builds**: [Powered by nightly.link](https://nightly.link/ca-x/vivaldi_plus/workflows/nightly/main) - Auto-built after each code push
+
+> **Build Types:**
+> - **Stable**: Tested official releases, recommended for most users
+> - **Nightly**: Contains latest features and fixes, but may be unstable
 
 #### Installation
 Place `version.dll` in the Vivaldi portable directory (same directory as `vivaldi.exe`)
@@ -412,18 +469,24 @@ Place `version.dll` in the Vivaldi portable directory (same directory as `vivald
 
 ```bash
 # Install xmake
-# Clone repository
+# Clone repository (use --recursive to include Detours submodule)
 git clone --recursive https://github.com/ca-x/vivaldi_plus.git
 cd vivaldi_plus
 
-# Build x64
-xmake f -a x64
+# Build x64 (recommended)
+xmake f -a x64 -m release
 xmake
 
-# Build x86
-xmake f -a x86
+# Build ARM64 (Windows on ARM)
+xmake f -a arm64 -m release
+xmake
+
+# Build x86 (32-bit)
+xmake f -a x86 -m release
 xmake
 ```
+
+Compiled DLLs will be output to `build/release/<architecture>/version.dll`
 
 ### Original Project
 Based on [chromePlus](https://github.com/icy37785/chrome_plus)

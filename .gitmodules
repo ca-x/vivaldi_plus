@@ -1,3 +1,3 @@
-[submodule "minhook"]
-	path = minhook
-	url = https://github.com/ca-x/minhook
+[submodule "detours"]
+	path = detours
+	url = https://github.com/microsoft/Detours.git

@@ -3,6 +3,7 @@
 
 #include <windows.h>
 #include <atomic>
+#include "detours.h"
 
 // NT API definitions
 typedef LONG NTSTATUS, *PNTSTATUS;
@@ -133,19 +134,17 @@ void InstallPatches()
         return;
     }
 
-    // Create hook using MinHook
-    MH_STATUS status = MH_CreateHook(LdrLoadDll, HookedLdrLoadDll, (LPVOID *)&RawLdrLoadDll);
-    if (status != MH_OK)
-    {
-        DebugLog(L"MH_CreateHook LdrLoadDll failed: %d", status);
-        return;
-    }
+    // Initialize function pointer with original API address
+    RawLdrLoadDll = reinterpret_cast<pLdrLoadDll>(LdrLoadDll);
 
-    // Enable the hook
-    status = MH_EnableHook(LdrLoadDll);
-    if (status != MH_OK)
+    // Create hook using Detours
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawLdrLoadDll), reinterpret_cast<void*>(HookedLdrLoadDll));
+    LONG status = DetourTransactionCommit();
+    if (status != NO_ERROR)
     {
-        DebugLog(L"MH_EnableHook LdrLoadDll failed: %d", status);
+        DebugLog(L"DetourAttach LdrLoadDll failed: %d", status);
         return;
     }
 }

@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <psapi.h>
 
-#include "MinHook.h"
+#include "detours.h"
 #include "version.h"
 
 #include "hijack.h"
@@ -95,17 +95,15 @@ void InstallLoader()
     }
 
     // Hook the entry point to redirect to our Loader function
-    MH_STATUS status = MH_CreateHook(entry, Loader, (LPVOID *)&ExeMain);
-    if (status != MH_OK)
-    {
-        DebugLog(L"MH_CreateHook InstallLoader failed: %d", status);
-        return;
-    }
+    ExeMain = reinterpret_cast<Startup>(entry);
 
-    status = MH_EnableHook(entry);
-    if (status != MH_OK)
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourAttach(reinterpret_cast<LPVOID*>(&ExeMain), reinterpret_cast<void*>(Loader));
+    LONG status = DetourTransactionCommit();
+    if (status != NO_ERROR)
     {
-        DebugLog(L"MH_EnableHook InstallLoader failed: %d", status);
+        DebugLog(L"DetourAttach InstallLoader failed: %d", status);
         return;
     }
 }
@@ -130,22 +128,13 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
             // Restore original version.dll functionality by loading system DLL
             LoadSysDll(hModule);
 
-            // Initialize MinHook library
-            MH_STATUS status = MH_Initialize();
-            if (status != MH_OK)
-            {
-                DebugLog(L"MH_Initialize failed: %d", status);
-                return TRUE;  // Return TRUE to allow process to continue
-            }
-
             // Install our loader hook
             InstallLoader();
         }
         break;
 
     case DLL_PROCESS_DETACH:
-        // Cleanup MinHook
-        MH_Uninitialize();
+        // No cleanup needed for Detours
         break;
     }
 
