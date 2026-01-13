@@ -44,8 +44,10 @@ jobs:
 
       - name: package
         run: |
-          # Create zip with version.dll and config examples
-          7z a ${{ matrix.name }}.zip build/release/${{ matrix.arch }}/version.dll config.ini.example config.ini.example.zh-CN
+          cd build/release/${{ matrix.arch }}
+          7z a ../../../${{ matrix.name }}.zip version.dll
+          cd ../../..
+          7z a ${{ matrix.name }}.zip config.ini.example config.ini.example.zh-CN
 
       - name: upload artifact
         uses: actions/upload-artifact@v4
