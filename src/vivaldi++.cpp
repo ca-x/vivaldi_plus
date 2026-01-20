@@ -97,11 +97,11 @@ void InstallLoader()
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
     DetourAttach(reinterpret_cast<LPVOID*>(&ExeMain), reinterpret_cast<void*>(Loader));
+
     LONG status = DetourTransactionCommit();
     if (status != NO_ERROR)
     {
         DebugLog(L"DetourAttach InstallLoader failed: %d", status);
-        return;
     }
 }
 

@@ -138,10 +138,12 @@ std::vector<IMMDevice*> CollectAudioDevices(IMMDeviceEnumerator* enumerator) {
 bool MuteProcess(const std::vector<DWORD>& pids,
                  bool set_mute,
                  bool save_mute_state = false) {
+  if (pids.empty()) return false;
+
   bool found_any_session = false;
 
   // Convert PIDs to unordered_set for O(1) lookup
-  std::unordered_set<DWORD> pid_set(pids.begin(), pids.end());
+  const std::unordered_set<DWORD> pid_set(pids.begin(), pids.end());
 
   HRESULT hr = CoInitialize(nullptr);
   const bool should_uninit = (hr == S_OK || hr == S_FALSE);
@@ -317,22 +319,31 @@ void RegisterHotkeyThread(std::wstring_view keys, HotkeyAction action) {
 
   UINT flag = ParseHotkeys(keys);
 
-  std::thread th([flag, action]() {
-    RegisterHotKey(nullptr, 0, LOWORD(flag), HIWORD(flag));
-
-    MSG msg;
-    while (GetMessage(&msg, nullptr, 0, 0)) {
-      if (msg.message == WM_TIMER && msg.wParam == UNMUTE_RETRY_TIMER_ID) {
-        HandleUnmuteRetry();
-      } else if (msg.message == WM_HOTKEY) {
-        OnHotkey(action);
+  try {
+    std::thread th([flag, action]() {
+      if (!RegisterHotKey(nullptr, 0, LOWORD(flag), HIWORD(flag))) {
+        DebugLog(L"RegisterHotKey failed: %d", GetLastError());
+        return;
       }
-      TranslateMessage(&msg);
-      DispatchMessage(&msg);
-    }
-  });
 
-  th.detach();
+      MSG msg;
+      while (GetMessage(&msg, nullptr, 0, 0)) {
+        if (msg.message == WM_TIMER && msg.wParam == UNMUTE_RETRY_TIMER_ID) {
+          HandleUnmuteRetry();
+        } else if (msg.message == WM_HOTKEY) {
+          OnHotkey(action);
+        }
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+      }
+
+      UnregisterHotKey(nullptr, 0);
+    });
+
+    th.detach();
+  } catch (const std::system_error& e) {
+    DebugLog(L"Failed to create hotkey thread: %S", e.what());
+  }
 }
 
 }  // anonymous namespace
