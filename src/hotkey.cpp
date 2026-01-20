@@ -339,7 +339,7 @@ void RegisterHotkeyThread(std::wstring_view keys, HotkeyAction action) {
 
 // Public interface
 void Initialize() {
-  const auto& boss_key = Config::Instance().GetBossKey();
+  const auto& boss_key = config.GetBossKey();
   if (!boss_key.empty()) {
     RegisterHotkeyThread(boss_key, HideAndShow);
   }
