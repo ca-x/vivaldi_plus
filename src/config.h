@@ -134,7 +134,4 @@ public:
     Config& operator=(const Config&) = delete;
 };
 
-// Global config reference for zero-overhead access
-extern const Config& config;
-
 #endif  // VIVALDI_PLUS_CONFIG_H_

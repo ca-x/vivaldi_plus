@@ -3,7 +3,7 @@
 
 #include <lmaccess.h>
 #include "detours.h"
-#include "config.h"  // For config global reference
+#include "config.h"  // For Config::Instance()
 
 BOOL WINAPI FakeGetComputerName(
     _Out_ LPTSTR lpBuffer,
@@ -222,7 +222,7 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
         // - GPU acceleration in renderer processes
         // - Media Source Extensions (MSE) performance
         // Only enable if absolutely necessary for compatibility
-        if (config.IsWin32KEnabled())
+        if (Config::Instance().IsWin32KEnabled())
         {
             *policy_value_1 &= ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
         }

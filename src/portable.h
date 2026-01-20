@@ -1,7 +1,7 @@
 #ifndef VIVALDI_PLUS_PORTABLE_H_
 #define VIVALDI_PLUS_PORTABLE_H_
 
-#include "config.h"  // For config global reference
+#include "config.h"  // For Config::Instance()
 #include <string_view>
 
 namespace {
@@ -301,7 +301,7 @@ ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring> &args)
 
     // Add features to disable
     // Priority: User-specified in config.ini > Default compatibility features
-    std::wstring features_to_add = config.GetDisableFeatures();
+    std::wstring features_to_add = Config::Instance().GetDisableFeatures();
 
     if (!features_to_add.empty())
     {
@@ -410,7 +410,7 @@ void Portable(LPWSTR param)
     wchar_t path[MAX_PATH];
     if (!::GetModuleFileName(nullptr, path, MAX_PATH))
     {
-        if (config.IsDebugLogEnabled())
+        if (Config::Instance().IsDebugLogEnabled())
         {
             DebugLog(L"GetModuleFileName failed: %d", GetLastError());
         }
@@ -419,7 +419,7 @@ void Portable(LPWSTR param)
 
     std::wstring args = GetCommand(param);
 
-    if (config.IsDebugLogEnabled())
+    if (Config::Instance().IsDebugLogEnabled())
     {
         DebugLog(L"Portable mode: path=%s, args=%s", path, args.c_str());
     }
@@ -438,7 +438,7 @@ void Portable(LPWSTR param)
     }
     else
     {
-        if (config.IsDebugLogEnabled())
+        if (Config::Instance().IsDebugLogEnabled())
         {
             DebugLog(L"ShellExecuteEx failed: %d", GetLastError());
         }
