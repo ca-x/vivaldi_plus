@@ -113,15 +113,17 @@ uint8_t *SearchModuleRaw2(HMODULE module, const uint8_t *sub, int m)
     return nullptr;
 }
 
-// Get application directory path
+// Get application directory path (cached for performance)
 std::wstring GetAppDir()
 {
-    wchar_t path[MAX_PATH];
-    if (!::GetModuleFileNameW(nullptr, path, MAX_PATH))
-        return L"";
-
-    ::PathRemoveFileSpecW(path);
-    return path;
+    static std::wstring cached_path = []() {
+        wchar_t path[MAX_PATH];
+        if (!::GetModuleFileNameW(nullptr, path, MAX_PATH))
+            return std::wstring(L"");
+        ::PathRemoveFileSpecW(path);
+        return std::wstring(path);
+    }();
+    return cached_path;
 }
 
 // Check if string ends with suffix (case-insensitive)

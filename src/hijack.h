@@ -69,14 +69,6 @@ EXPORT(VerQueryValueW)
 #include "detours.h"
 
 namespace {
-// Internal helper functions are kept in the anonymous namespace
-void InstallDetours(PBYTE pTarget, PBYTE pDetour) {
-  DetourTransactionBegin();
-  DetourUpdateThread(GetCurrentThread());
-  DetourAttach(&reinterpret_cast<PVOID&>(pTarget), pDetour);
-  DetourTransactionCommit();
-}
-
 void LoadVersion(HINSTANCE hModule)
 {
     PBYTE pImageBase = (PBYTE)hModule;
@@ -107,15 +99,25 @@ void LoadVersion(HINSTANCE hModule)
     if (!module)
         return;
 
-    // Use Detours to redirect functions (same as reference code)
-    for (size_t i = 0; i < pimExD->NumberOfNames; i++)
+    // Store function pointers in array (must persist until DetourTransactionCommit)
+    static PVOID targets[32];  // version.dll has 17 exports, 32 is safe
+    size_t count = 0;
+
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+
+    for (size_t i = 0; i < pimExD->NumberOfNames && count < 32; i++)
     {
         PBYTE Original = (PBYTE)GetProcAddress(module, (char *)(pImageBase + pName[i]));
         if (Original)
         {
-            InstallDetours(pImageBase + pFunction[pNameOrdinals[i]], Original);
+            targets[count] = (PVOID)(pImageBase + pFunction[pNameOrdinals[i]]);
+            DetourAttach(&targets[count], Original);
+            count++;
         }
     }
+
+    DetourTransactionCommit();
 }
 } // namespace
 #pragma endregion

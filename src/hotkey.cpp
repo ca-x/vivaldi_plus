@@ -140,6 +140,9 @@ bool MuteProcess(const std::vector<DWORD>& pids,
                  bool save_mute_state = false) {
   bool found_any_session = false;
 
+  // Convert PIDs to unordered_set for O(1) lookup
+  std::unordered_set<DWORD> pid_set(pids.begin(), pids.end());
+
   HRESULT hr = CoInitialize(nullptr);
   const bool should_uninit = (hr == S_OK || hr == S_FALSE);
   if (FAILED(hr) && hr != RPC_E_CHANGED_MODE) {
@@ -183,14 +186,8 @@ bool MuteProcess(const std::vector<DWORD>& pids,
           DWORD session_pid = 0;
           session2->GetProcessId(&session_pid);
 
-          // Check if this session belongs to our process
-          bool is_our_process = false;
-          for (DWORD pid : pids) {
-            if (session_pid == pid) {
-              is_our_process = true;
-              break;
-            }
-          }
+          // Check if this session belongs to our process (O(1) lookup with unordered_set)
+          bool is_our_process = pid_set.find(session_pid) != pid_set.end();
 
           if (is_our_process) {
             found_any_session = true;
