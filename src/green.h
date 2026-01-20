@@ -3,7 +3,14 @@
 
 #include <lmaccess.h>
 #include "detours.h"
-#include "config.h"  // For Config::Instance()
+#include "config.h"
+
+namespace {
+inline const Config& GetConfig() {
+    static const Config& config = Config::Instance();
+    return config;
+}
+}
 
 BOOL WINAPI FakeGetComputerName(
     _Out_ LPTSTR lpBuffer,
@@ -222,7 +229,7 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
         // - GPU acceleration in renderer processes
         // - Media Source Extensions (MSE) performance
         // Only enable if absolutely necessary for compatibility
-        if (Config::Instance().IsWin32KEnabled())
+        if (GetConfig().IsWin32KEnabled())
         {
             *policy_value_1 &= ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
         }
@@ -260,7 +267,10 @@ void MakeGreen()
     LONG status = DetourTransactionCommit();
     if (status != NO_ERROR)
     {
-        DebugLog(L"MakeGreen DetourTransactionCommit failed: %d", status);
+        if (GetConfig().IsDebugLogEnabled())
+        {
+            DebugLog(L"MakeGreen DetourTransactionCommit failed: %d", status);
+        }
     }
 }
 
