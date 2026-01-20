@@ -16,6 +16,7 @@
 #include "utils.h"
 
 namespace bosskey {
+
 namespace {
 
 inline const Config& GetConfig() {
