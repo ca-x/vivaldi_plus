@@ -1,6 +1,3 @@
-#ifndef VIVALDI_PLUS_GREEN_H_
-#define VIVALDI_PLUS_GREEN_H_
-
 #include <lmaccess.h>
 #include "detours.h"
 #include "config.h"  // For Config::Instance()
@@ -49,7 +46,7 @@ typedef BOOL(WINAPI *pCryptProtectData)(
     _In_ DWORD dwFlags,
     _Out_ DATA_BLOB *pDataOut);
 
-pCryptProtectData RawCryptProtectData = nullptr;
+pCryptProtectData RawCryptProtectData = NULL;
 
 typedef BOOL(WINAPI *pCryptUnprotectData)(
     _In_ DATA_BLOB *pDataIn,
@@ -60,7 +57,7 @@ typedef BOOL(WINAPI *pCryptUnprotectData)(
     _In_ DWORD dwFlags,
     _Out_ DATA_BLOB *pDataOut);
 
-pCryptUnprotectData RawCryptUnprotectData = nullptr;
+pCryptUnprotectData RawCryptUnprotectData = NULL;
 
 BOOL WINAPI MyCryptUnprotectData(
     _In_ DATA_BLOB *pDataIn,
@@ -90,7 +87,7 @@ typedef BOOL(WINAPI *pLogonUserW)(
     DWORD dwLogonProvider,
     PHANDLE phToken);
 
-pLogonUserW RawLogonUserW = nullptr;
+pLogonUserW RawLogonUserW = NULL;
 
 BOOL WINAPI MyLogonUserW(
     LPCWSTR lpszUsername,
@@ -108,7 +105,7 @@ BOOL WINAPI MyLogonUserW(
 
 typedef BOOL(WINAPI *pIsOS)(DWORD dwOS);
 
-pIsOS RawIsOS = nullptr;
+pIsOS RawIsOS = NULL;
 
 BOOL WINAPI MyIsOS(
     DWORD dwOS)
@@ -128,7 +125,7 @@ typedef NET_API_STATUS(WINAPI *pNetUserGetInfo)(
     DWORD level,
     LPBYTE *bufptr);
 
-pNetUserGetInfo RawNetUserGetInfo = nullptr;
+pNetUserGetInfo RawNetUserGetInfo = NULL;
 
 NET_API_STATUS WINAPI MyNetUserGetInfo(
     LPCWSTR servername,
@@ -242,5 +239,3 @@ void MakeGreen()
         DebugLog(L"MakeGreen DetourTransactionCommit failed: %d", status);
     }
 }
-
-#endif  // VIVALDI_PLUS_GREEN_H_

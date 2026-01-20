@@ -1,15 +1,7 @@
-#ifndef VIVALDI_PLUS_PORTABLE_H_
-#define VIVALDI_PLUS_PORTABLE_H_
-
 #include "config.h"  // For Config::Instance()
 #include <string_view>
 
 namespace {
-
-inline bool StartsWith(const std::wstring& str, const std::wstring& prefix)
-{
-    return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
-}
 
 bool IsWhitespace(wchar_t ch)
 {
@@ -275,7 +267,7 @@ ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring> &args)
 
     for (const auto &arg : args)
     {
-        if (StartsWith(arg, disable_features_prefix))
+        if (arg.find(disable_features_prefix) == 0)
         {
             // Extract feature names from existing --disable-features flags
             if (!combined_features.empty())
@@ -287,11 +279,11 @@ ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring> &args)
         else
         {
             // Check if user already specified data/cache dirs
-            if (StartsWith(arg, user_data_dir_prefix))
+            if (arg.find(user_data_dir_prefix) == 0)
             {
                 result.has_user_data_dir = true;
             }
-            else if (StartsWith(arg, disk_cache_dir_prefix))
+            else if (arg.find(disk_cache_dir_prefix) == 0)
             {
                 result.has_disk_cache_dir = true;
             }
@@ -350,10 +342,9 @@ std::wstring ReassembleCommandLine(const std::vector<std::wstring> &args, const 
     {
         if (!result.empty())
         {
-            result.reserve(result.size() + suffix.size() + 1);
-            result += L' ';
+            result.push_back(L' ');
         }
-        result += suffix;
+        result.append(suffix);
     }
     return result;
 }
@@ -444,5 +435,3 @@ void Portable(LPWSTR param)
         }
     }
 }
-
-#endif  // VIVALDI_PLUS_PORTABLE_H_

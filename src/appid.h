@@ -1,6 +1,3 @@
-#ifndef VIVALDI_PLUS_APPID_H_
-#define VIVALDI_PLUS_APPID_H_
-
 #include <shobjidl.h>
 #include <propkey.h>
 #include <propvarutil.h>
@@ -45,5 +42,3 @@ void SetAppId()
         DebugLog(L"DetourAttach PSStringFromPropertyKey failed: %d", status);
     }
 }
-
-#endif  // VIVALDI_PLUS_APPID_H_
