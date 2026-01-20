@@ -12,6 +12,18 @@ BOOL WINAPI FakeGetComputerName(
     return 0;
 }
 
+typedef BOOL(WINAPI *pGetVolumeInformationW)(
+    _In_opt_ LPCTSTR lpRootPathName,
+    _Out_opt_ LPTSTR lpVolumeNameBuffer,
+    _In_ DWORD nVolumeNameSize,
+    _Out_opt_ LPDWORD lpVolumeSerialNumber,
+    _Out_opt_ LPDWORD lpMaximumComponentLength,
+    _Out_opt_ LPDWORD lpFileSystemFlags,
+    _Out_opt_ LPTSTR lpFileSystemNameBuffer,
+    _In_ DWORD nFileSystemNameSize);
+
+pGetVolumeInformationW RawGetVolumeInformationW = nullptr;
+
 BOOL WINAPI FakeGetVolumeInformation(
     _In_opt_ LPCTSTR lpRootPathName,
     _Out_opt_ LPTSTR lpVolumeNameBuffer,
@@ -22,7 +34,16 @@ BOOL WINAPI FakeGetVolumeInformation(
     _Out_opt_ LPTSTR lpFileSystemNameBuffer,
     _In_ DWORD nFileSystemNameSize)
 {
-    return 0;
+    if (lpVolumeSerialNumber != nullptr)
+    {
+        return false;
+    }
+    else
+    {
+        return RawGetVolumeInformationW(lpRootPathName, lpVolumeNameBuffer, nVolumeNameSize,
+                                        lpVolumeSerialNumber, lpMaximumComponentLength,
+                                        lpFileSystemFlags, lpFileSystemNameBuffer, nFileSystemNameSize);
+    }
 }
 
 BOOL WINAPI MyCryptProtectData(
@@ -213,7 +234,7 @@ void MakeGreen()
 {
     // Initialize function pointers with original API addresses
     auto RawGetComputerNameW = GetComputerNameW;
-    auto RawGetVolumeInformationW = GetVolumeInformationW;
+    RawGetVolumeInformationW = GetVolumeInformationW;
     RawUpdateProcThreadAttribute = UpdateProcThreadAttribute;
     RawCryptProtectData = CryptProtectData;
     RawCryptUnprotectData = CryptUnprotectData;

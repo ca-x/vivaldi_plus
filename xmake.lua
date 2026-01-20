@@ -10,8 +10,11 @@ add_defines("WIN32", "_WIN32")
 add_defines("UNICODE", "_UNICODE", "_CRT_SECURE_NO_WARNINGS", "_CRT_NONSTDC_NO_DEPRECATE")
 
 if is_mode("release") then
+    set_exceptions("none")
+    set_optimize("smallest")
+    set_runtimes("MT")
     add_defines("NDEBUG")
-    add_cxflags("/O2", "/Os", "/Gy", "/MT", "/EHsc", "/fp:precise")
+    add_cxflags("/Gy", "/fp:precise")
     add_ldflags("/DYNAMICBASE", "/LTCG")
     if not is_arch("arm64") then
         add_requires("vc-ltl5")
