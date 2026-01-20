@@ -81,7 +81,6 @@ std::vector<DWORD> GetAppPids() {
   CloseHandle(snapshot);
   return pids;
 }
-
 // Collect all active audio devices (default + all active devices)
 std::vector<IMMDevice*> CollectAudioDevices(IMMDeviceEnumerator* enumerator) {
   std::vector<IMMDevice*> devices;

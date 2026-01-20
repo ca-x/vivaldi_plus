@@ -1,4 +1,4 @@
-﻿#include <windows.h>
+#include <windows.h>
 #include <intrin.h>
 #include <stdint.h>
 
@@ -66,54 +66,17 @@ EXPORT(VerQueryValueW)
 #pragma endregion
 
 #pragma region 还原导出函数
-bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize)
-{
-    DWORD ProtectFlag = 0;
-    if (VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, PAGE_EXECUTE_READWRITE, &ProtectFlag))
-    {
-        memcpy(BaseAddress, Buffer, nSize);
-        FlushInstructionCache(GetCurrentProcess(), BaseAddress, nSize);
-        VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, ProtectFlag, &ProtectFlag);
-        return true;
-    }
-    return false;
+#include "detours.h"
+
+namespace {
+// Internal helper functions are kept in the anonymous namespace
+void InstallDetours(PBYTE pTarget, PBYTE pDetour) {
+  DetourTransactionBegin();
+  DetourUpdateThread(GetCurrentThread());
+  DetourAttach(&reinterpret_cast<PVOID&>(pTarget), pDetour);
+  DetourTransactionCommit();
 }
 
-// Install JMP instruction to redirect function calls
-// This modifies the fake export functions to jump directly to the real system DLL
-void InstallJMP(PBYTE BaseAddress, uintptr_t Function)
-{
-    // Skip existing JMP instruction if present
-    if (*BaseAddress == 0xE9)
-    {
-        BaseAddress++;
-        BaseAddress = BaseAddress + *(uint32_t *)BaseAddress + 4;
-    }
-#ifdef _WIN64
-    // 64-bit: mov rax, address; jmp rax
-    BYTE move[] = {0x48, 0xB8}; // mov rax, imm64
-    BYTE jump[] = {0xFF, 0xE0}; // jmp rax
-
-    WriteMemory(BaseAddress, move, sizeof(move));
-    BaseAddress += sizeof(move);
-
-    WriteMemory(BaseAddress, (PBYTE)&Function, sizeof(uintptr_t));
-    BaseAddress += sizeof(uintptr_t);
-
-    WriteMemory(BaseAddress, jump, sizeof(jump));
-#else
-    // 32-bit: jmp relative
-    BYTE jump[] = {0xE9};
-    WriteMemory(BaseAddress, jump, sizeof(jump));
-    BaseAddress += sizeof(jump);
-
-    uintptr_t offset = Function - (uintptr_t)BaseAddress - 4;
-    WriteMemory(BaseAddress, (PBYTE)&offset, sizeof(offset));
-#endif // _WIN64
-}
-#pragma endregion
-
-#pragma region 加载系统dll
 void LoadVersion(HINSTANCE hModule)
 {
     PBYTE pImageBase = (PBYTE)hModule;
@@ -144,16 +107,17 @@ void LoadVersion(HINSTANCE hModule)
     if (!module)
         return;
 
-    // Redirect all exported functions to real system DLL
+    // Use Detours to redirect functions (same as reference code)
     for (size_t i = 0; i < pimExD->NumberOfNames; i++)
     {
-        uintptr_t Original = (uintptr_t)GetProcAddress(module, (char *)(pImageBase + pName[i]));
+        PBYTE Original = (PBYTE)GetProcAddress(module, (char *)(pImageBase + pName[i]));
         if (Original)
         {
-            InstallJMP(pImageBase + pFunction[pNameOrdinals[i]], Original);
+            InstallDetours(pImageBase + pFunction[pNameOrdinals[i]], Original);
         }
     }
 }
+} // namespace
 #pragma endregion
 
 void LoadSysDll(HINSTANCE hModule)

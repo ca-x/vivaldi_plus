@@ -54,9 +54,6 @@ void VivaldiPlusCommand(LPWSTR param)
 // Main loader function called instead of original entry point
 int Loader()
 {
-    // Install binary patches for Vivaldi (disable update nag, etc.)
-    MakePatch();
-
     // Only process main browser process, not child processes
     LPWSTR param = GetCommandLineW();
     if (param && !wcsstr(param, L"-type="))
