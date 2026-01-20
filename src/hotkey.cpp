@@ -7,7 +7,6 @@
 #include <tlhelp32.h>
 
 #include <algorithm>
-#include <system_error>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
