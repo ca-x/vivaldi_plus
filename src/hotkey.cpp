@@ -23,8 +23,7 @@ namespace {
 
 using HotkeyAction = void (*)();
 
-// Timer ID for delayed unmute retry
-constexpr UINT_PTR UNMUTE_RETRY_TIMER_ID = 1;
+// Delayed unmute retry configuration
 constexpr UINT UNMUTE_RETRY_DELAY_MS = 500;
 
 // PID cache to avoid frequent process enumeration
@@ -37,6 +36,8 @@ struct BossKeyState {
     std::unordered_map<std::wstring, bool> original_mute_states;
     std::atomic<bool> has_unmuted_sessions{false};
     std::mutex audio_state_mutex;
+    HANDLE unmute_retry_timer{nullptr};
+    std::mutex timer_mutex;
 };
 
 // Get singleton state instance (lazy initialization)
@@ -311,17 +312,25 @@ bool MuteProcess(const std::vector<DWORD>& pids,
   return found_any_session;
 }
 
-// Delayed unmute retry handler (runs in hotkey thread)
-void HandleUnmuteRetry() {
-  KillTimer(nullptr, UNMUTE_RETRY_TIMER_ID);
-
+// Delayed unmute retry handler (runs in timer thread)
+VOID CALLBACK HandleUnmuteRetry(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
   auto& state = GetState();
+
+  // Stop and cleanup timer
+  {
+    std::lock_guard<std::mutex> lock(state.timer_mutex);
+    if (state.unmute_retry_timer) {
+      DeleteTimerQueueTimer(nullptr, state.unmute_retry_timer, nullptr);
+      state.unmute_retry_timer = nullptr;
+    }
+  }
+
   if (state.is_hide.load(std::memory_order_acquire)) {
     // Still hidden, don't retry
     return;
   }
 
-  // Run unmute in a separate thread to avoid blocking message loop
+  // Run unmute in a separate thread to avoid blocking timer thread
   std::thread([=]() {
     auto vivaldi_pids = GetAppPids();
     MuteProcess(vivaldi_pids, false, false);
@@ -347,7 +356,13 @@ void HideAndShow() {
   if (!current_hide_state) {
     // ===== HIDE MODE =====
     // 1. Stop any pending retry timer
-    KillTimer(nullptr, UNMUTE_RETRY_TIMER_ID);
+    {
+      std::lock_guard<std::mutex> lock(state.timer_mutex);
+      if (state.unmute_retry_timer) {
+        DeleteTimerQueueTimer(nullptr, state.unmute_retry_timer, INVALID_HANDLE_VALUE);
+        state.unmute_retry_timer = nullptr;
+      }
+    }
 
     // 2. Clear saved audio states (thread-safe)
     {
@@ -390,7 +405,16 @@ void HideAndShow() {
       // If we found sessions and had unmuted ones, set up a retry timer
       // to handle late-loading audio sessions
       if (found_sessions && state.has_unmuted_sessions.load(std::memory_order_acquire)) {
-        SetTimer(nullptr, UNMUTE_RETRY_TIMER_ID, UNMUTE_RETRY_DELAY_MS, nullptr);
+        std::lock_guard<std::mutex> lock(state.timer_mutex);
+        CreateTimerQueueTimer(
+          &state.unmute_retry_timer,
+          nullptr,
+          HandleUnmuteRetry,
+          nullptr,
+          UNMUTE_RETRY_DELAY_MS,
+          0,  // One-shot timer
+          WT_EXECUTEINTIMERTHREAD
+        );
       } else {
         // No need to retry, clean up now
         {
@@ -421,9 +445,7 @@ void RegisterHotkeyThread(std::wstring_view keys, HotkeyAction action) {
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
-      if (msg.message == WM_TIMER && msg.wParam == UNMUTE_RETRY_TIMER_ID) {
-        HandleUnmuteRetry();
-      } else if (msg.message == WM_HOTKEY) {
+      if (msg.message == WM_HOTKEY) {
         OnHotkey(action);
       }
       TranslateMessage(&msg);
