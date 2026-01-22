@@ -5,6 +5,7 @@
 #include <endpointvolume.h>
 #include <mmdeviceapi.h>
 #include <tlhelp32.h>
+#include <wrl/client.h>
 
 #include <algorithm>
 #include <atomic>
@@ -16,6 +17,8 @@
 
 #include "config.h"
 #include "utils.h"
+
+using Microsoft::WRL::ComPtr;
 
 namespace bosskey {
 
@@ -142,52 +145,47 @@ std::vector<DWORD> GetAppPids() {
   return GetProcessCache().GetPids();
 }
 // Collect all active audio devices (default + all active devices)
-std::vector<IMMDevice*> CollectAudioDevices(IMMDeviceEnumerator* enumerator) {
-  std::vector<IMMDevice*> devices;
+std::vector<ComPtr<IMMDevice>> CollectAudioDevices(IMMDeviceEnumerator* enumerator) {
+  std::vector<ComPtr<IMMDevice>> devices;
   std::unordered_set<std::wstring> seen_device_ids;
 
   if (!enumerator) {
     return devices;
   }
 
-  auto add_device = [&](IMMDevice* device) {
+  auto add_device = [&](const ComPtr<IMMDevice>& device) {
     if (!device) return;
 
     LPWSTR device_id = nullptr;
     if (SUCCEEDED(device->GetId(&device_id)) && device_id) {
       if (seen_device_ids.insert(device_id).second) {
         devices.emplace_back(device);
-      } else {
-        device->Release();
       }
       CoTaskMemFree(device_id);
-    } else {
-      device->Release();
     }
   };
 
   // Add default devices for all roles
   const ERole roles[] = {eConsole, eMultimedia, eCommunications};
   for (auto role : roles) {
-    IMMDevice* device = nullptr;
+    ComPtr<IMMDevice> device;
     if (SUCCEEDED(enumerator->GetDefaultAudioEndpoint(eRender, role, &device))) {
       add_device(device);
     }
   }
 
   // Add all active devices
-  IMMDeviceCollection* collection = nullptr;
+  ComPtr<IMMDeviceCollection> collection;
   if (SUCCEEDED(enumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &collection))) {
     UINT count = 0;
     if (SUCCEEDED(collection->GetCount(&count))) {
       for (UINT i = 0; i < count; ++i) {
-        IMMDevice* device = nullptr;
+        ComPtr<IMMDevice> device;
         if (SUCCEEDED(collection->Item(i, &device))) {
           add_device(device);
         }
       }
     }
-    collection->Release();
   }
 
   return devices;
@@ -209,7 +207,7 @@ bool MuteProcess(const std::vector<DWORD>& pids,
     return false;
   }
 
-  IMMDeviceEnumerator* enumerator = nullptr;
+  ComPtr<IMMDeviceEnumerator> enumerator;
   if (FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
                               IID_PPV_ARGS(&enumerator))) || !enumerator) {
     if (should_uninit) CoUninitialize();
@@ -217,32 +215,29 @@ bool MuteProcess(const std::vector<DWORD>& pids,
   }
 
   // Collect all audio devices
-  auto devices = CollectAudioDevices(enumerator);
-  enumerator->Release();
+  auto devices = CollectAudioDevices(enumerator.Get());
 
   // Process each device
-  for (auto* device : devices) {
-    IAudioSessionManager2* manager = nullptr;
+  for (const auto& device : devices) {
+    ComPtr<IAudioSessionManager2> manager;
     if (FAILED(device->Activate(__uuidof(IAudioSessionManager2), CLSCTX_ALL,
-                                nullptr, (void**)&manager)) || !manager) {
-      device->Release();
+                                nullptr, IID_PPV_ARGS_Helper(&manager))) || !manager) {
       continue;
     }
 
-    IAudioSessionEnumerator* session_enumerator = nullptr;
+    ComPtr<IAudioSessionEnumerator> session_enumerator;
     if (SUCCEEDED(manager->GetSessionEnumerator(&session_enumerator))) {
       int session_count = 0;
       session_enumerator->GetCount(&session_count);
 
       for (int i = 0; i < session_count; ++i) {
-        IAudioSessionControl* session = nullptr;
+        ComPtr<IAudioSessionControl> session;
         if (FAILED(session_enumerator->GetSession(i, &session)) || !session) {
           continue;
         }
 
-        IAudioSessionControl2* session2 = nullptr;
-        if (SUCCEEDED(session->QueryInterface(__uuidof(IAudioSessionControl2),
-                                              (void**)&session2))) {
+        ComPtr<IAudioSessionControl2> session2;
+        if (SUCCEEDED(session.As(&session2))) {
           DWORD session_pid = 0;
           session2->GetProcessId(&session_pid);
 
@@ -255,9 +250,8 @@ bool MuteProcess(const std::vector<DWORD>& pids,
             // Get unique session instance ID (GUID)
             LPWSTR session_id = nullptr;
             if (SUCCEEDED(session2->GetSessionInstanceIdentifier(&session_id)) && session_id) {
-              ISimpleAudioVolume* volume = nullptr;
-              if (SUCCEEDED(session2->QueryInterface(__uuidof(ISimpleAudioVolume),
-                                                     (void**)&volume))) {
+              ComPtr<ISimpleAudioVolume> volume;
+              if (SUCCEEDED(session2.As(&volume))) {
                 BOOL is_muted = FALSE;
                 volume->GetMute(&is_muted);
 
@@ -290,19 +284,13 @@ bool MuteProcess(const std::vector<DWORD>& pids,
                     }
                   }
                 }
-                volume->Release();
               }
               CoTaskMemFree(session_id);
             }
           }
-          session2->Release();
         }
-        session->Release();
       }
-      session_enumerator->Release();
     }
-    manager->Release();
-    device->Release();
   }
 
   if (should_uninit) {
