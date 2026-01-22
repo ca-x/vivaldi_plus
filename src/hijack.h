@@ -1,6 +1,15 @@
 #ifndef VIVALDI_PLUS_HIJACK_H_
 #define VIVALDI_PLUS_HIJACK_H_
 
+//
+// IMPORTANT: This header contains function definitions for DLL export forwarding.
+// It MUST only be included in ONE translation unit (vivaldi++.cpp).
+// DO NOT include this header in multiple .cpp files - it will cause ODR violations.
+//
+// This header uses inline assembly and export pragmas to forward version.dll exports.
+// The implementation style is intentional for the DLL hijacking technique.
+//
+
 #include <windows.h>
 #include <intrin.h>
 #include <stdint.h>
@@ -72,7 +81,7 @@ EXPORT(VerQueryValueW)
 #include "detours.h"
 
 namespace {
-void LoadVersion(HINSTANCE hModule)
+inline void LoadVersion(HINSTANCE hModule)
 {
     PBYTE pImageBase = (PBYTE)hModule;
     PIMAGE_DOS_HEADER pimDH = (PIMAGE_DOS_HEADER)pImageBase;
@@ -122,10 +131,10 @@ void LoadVersion(HINSTANCE hModule)
 
     DetourTransactionCommit();
 }
-} // namespace
+}  // namespace
 #pragma endregion
 
-void LoadSysDll(HINSTANCE hModule)
+inline void LoadSysDll(HINSTANCE hModule)
 {
     LoadVersion(hModule);
 }
