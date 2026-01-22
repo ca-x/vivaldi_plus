@@ -1,8 +1,16 @@
 #ifndef VIVALDI_PLUS_PORTABLE_H_
 #define VIVALDI_PLUS_PORTABLE_H_
 
-#include "config.h"
+// Make header self-contained
+#include <windows.h>
+#include <shlwapi.h>
+#include <string>
 #include <string_view>
+#include <vector>
+#include <utility>
+
+#include "config.h"
+#include "utils.h"
 
 namespace {
 
@@ -177,19 +185,19 @@ std::pair<std::vector<std::wstring>, std::vector<std::wstring>> SeparateSentinel
 
 }  // namespace
 
-bool IsExistsPortable()
+inline bool IsExistsPortable()
 {
     std::wstring path = GetAppDir() + L"\\portable";
     return PathFileExists(path.c_str()) != FALSE;
 }
 
-bool IsNeedPortable()
+inline bool IsNeedPortable()
 {
     static bool need_portable = IsExistsPortable();
     return need_portable;
 }
 
-bool IsCustomIniExist()
+inline bool IsCustomIniExist()
 {
     std::wstring path = GetAppDir() + L"\\config.ini";
     return PathFileExists(path.c_str()) != FALSE;
@@ -199,7 +207,7 @@ bool IsCustomIniExist()
 // It first tries to read the data dir from the "data" key in the "dir_setting" section.
 // If that fails, it falls back to a default relative to the app dir.
 // It expands any environment variables in the path.
-std::wstring GetUserDataDir()
+inline std::wstring GetUserDataDir()
 {
     std::wstring configFilePath = GetAppDir() + L"\\config.ini";
     if (!PathFileExists(configFilePath.c_str()))
@@ -228,7 +236,7 @@ std::wstring GetUserDataDir()
 // It first tries to read the cache dir from the "cache" key in the "dir_setting" section.
 // If that fails, it falls back to a default relative to the app dir.
 // It expands any environment variables in the path.
-std::wstring GetDiskCacheDir()
+inline std::wstring GetDiskCacheDir()
 {
     std::wstring configFilePath = GetAppDir() + L"\\config.ini";
 
@@ -263,7 +271,7 @@ struct ProcessedArgs
     bool has_disk_cache_dir = false;
 };
 
-ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring> &args)
+inline ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring> &args)
 {
     ProcessedArgs result;
     result.final_args.reserve(args.size() + 4);
@@ -322,7 +330,7 @@ ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring> &args)
 }
 
 // Inject additional arguments based on config settings.
-void InjectConfigPaths(std::vector<std::wstring> &args, bool has_user_data_dir, bool has_disk_cache_dir)
+inline void InjectConfigPaths(std::vector<std::wstring> &args, bool has_user_data_dir, bool has_disk_cache_dir)
 {
     if (!has_user_data_dir)
     {
@@ -343,7 +351,7 @@ void InjectConfigPaths(std::vector<std::wstring> &args, bool has_user_data_dir, 
 }
 
 // Reassemble final command line from arguments and suffix.
-std::wstring ReassembleCommandLine(const std::vector<std::wstring> &args, const std::wstring &suffix)
+inline std::wstring ReassembleCommandLine(const std::vector<std::wstring> &args, const std::wstring &suffix)
 {
     std::wstring result = JoinArgsString(args, L" ");
     if (!suffix.empty())
@@ -372,7 +380,7 @@ std::wstring ReassembleCommandLine(const std::vector<std::wstring> &args, const 
 // param: The command line passed to the application.
 //
 // Returns: The modified command line with additional args.
-std::wstring GetCommand(LPWSTR param)
+inline std::wstring GetCommand(LPWSTR param)
 {
     if (!param)
     {
@@ -405,7 +413,7 @@ std::wstring GetCommand(LPWSTR param)
     return ReassembleCommandLine(processed.final_args, suffix);
 }
 
-void Portable(LPWSTR param)
+inline void Portable(LPWSTR param)
 {
     wchar_t path[MAX_PATH];
     if (!::GetModuleFileName(nullptr, path, MAX_PATH))
