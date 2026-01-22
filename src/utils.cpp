@@ -6,15 +6,19 @@ std::wstring Format(const wchar_t *format, va_list args)
     if (!format)
         return L"";
 
-    // Calculate required buffer size
-    int length = _vscwprintf(format, args);
+    // Copy va_list for length calculation (va_list can only be used once)
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int length = _vscwprintf(format, args_copy);
+    va_end(args_copy);
+
     if (length < 0)
         return L"";
 
     // Allocate buffer (length + 1 for null terminator)
     std::vector<wchar_t> buffer(length + 1);
 
-    // Format string into buffer
+    // Format string into buffer using original args
     _vsnwprintf_s(&buffer[0], buffer.size(), length, format, args);
 
     return std::wstring(&buffer[0]);
