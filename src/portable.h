@@ -419,7 +419,7 @@ void Portable(LPWSTR param)
 
     std::wstring args = GetCommand(param);
 
-    if (portable_impl::GetConfig().IsDebugLogEnabled())
+    if (GetConfig().IsDebugLogEnabled())
     {
         DebugLog(L"Portable mode: path=%s, args=%s", path, args.c_str());
     }
