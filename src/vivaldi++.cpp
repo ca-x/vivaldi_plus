@@ -54,6 +54,14 @@ void VivaldiPlusCommand(LPWSTR param)
 // Main loader function called instead of original entry point
 int Loader()
 {
+    // Load system DLL safely (moved from DllMain to avoid loader lock deadlock)
+    static bool dll_loaded = false;
+    if (!dll_loaded)
+    {
+        LoadSysDll(hInstance);
+        dll_loaded = true;
+    }
+
     // Only process main browser process, not child processes
     LPWSTR param = GetCommandLineW();
     if (param && !wcsstr(param, L"-type="))
@@ -122,10 +130,9 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
             DisableThreadLibraryCalls(hModule);
             hInstance = hModule;
 
-            // Restore original version.dll functionality by loading system DLL
-            LoadSysDll(hModule);
-
             // Install our loader hook
+            // NOTE: LoadSysDll() is now called in Loader() to avoid DllMain loader lock deadlock
+            // Calling LoadLibrary in DllMain can cause deadlocks with antivirus software
             InstallLoader();
         }
         break;
