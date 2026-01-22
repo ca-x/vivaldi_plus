@@ -4,13 +4,6 @@
 #include "config.h"
 #include <string_view>
 
-namespace portable_impl {
-inline const Config& GetConfig() {
-    static const Config& config = Config::Instance();
-    return config;
-}
-}
-
 namespace {
 
 inline bool StartsWith(const std::wstring& str, const std::wstring& prefix)
@@ -308,7 +301,7 @@ ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring> &args)
 
     // Add features to disable
     // Priority: User-specified in config.ini > Default compatibility features
-    std::wstring features_to_add = portable_impl::GetConfig().GetDisableFeatures();
+    std::wstring features_to_add = GetConfig().GetDisableFeatures();
 
     if (!features_to_add.empty())
     {
@@ -417,7 +410,7 @@ void Portable(LPWSTR param)
     wchar_t path[MAX_PATH];
     if (!::GetModuleFileName(nullptr, path, MAX_PATH))
     {
-        if (portable_impl::GetConfig().IsDebugLogEnabled())
+        if (GetConfig().IsDebugLogEnabled())
         {
             DebugLog(L"GetModuleFileName failed: %d", GetLastError());
         }
@@ -445,7 +438,7 @@ void Portable(LPWSTR param)
     }
     else
     {
-        if (portable_impl::GetConfig().IsDebugLogEnabled())
+        if (GetConfig().IsDebugLogEnabled())
         {
             DebugLog(L"ShellExecuteEx failed: %d", GetLastError());
         }

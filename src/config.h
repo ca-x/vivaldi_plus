@@ -134,4 +134,11 @@ public:
     Config& operator=(const Config&) = delete;
 };
 
+// Thread-safe global access function
+// Preferred over global variable to avoid static initialization order issues
+// inline ensures no multiple definition errors when included in multiple files
+inline const Config& GetConfig() {
+    return Config::Instance();
+};
+
 #endif  // VIVALDI_PLUS_CONFIG_H_

@@ -5,13 +5,6 @@
 #include "detours.h"
 #include "config.h"
 
-namespace green_impl {
-inline const Config& GetConfig() {
-    static const Config& config = Config::Instance();
-    return config;
-}
-}
-
 BOOL WINAPI FakeGetComputerName(
     _Out_ LPTSTR lpBuffer,
     _Inout_ LPDWORD lpnSize)
@@ -229,7 +222,7 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
         // - GPU acceleration in renderer processes
         // - Media Source Extensions (MSE) performance
         // Only enable if absolutely necessary for compatibility
-        if (green_impl::GetConfig().IsWin32KEnabled())
+        if (GetConfig().IsWin32KEnabled())
         {
             *policy_value_1 &= ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
         }
@@ -267,7 +260,7 @@ void MakeGreen()
     LONG status = DetourTransactionCommit();
     if (status != NO_ERROR)
     {
-        if (green_impl::GetConfig().IsDebugLogEnabled())
+        if (GetConfig().IsDebugLogEnabled())
         {
             DebugLog(L"MakeGreen DetourTransactionCommit failed: %d", status);
         }
