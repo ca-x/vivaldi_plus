@@ -5,38 +5,48 @@
 #include "detours.h"
 #include "config.h"
 
-BOOL WINAPI FakeGetComputerName(
+// Anonymous namespace to prevent ODR violations if this header is included in multiple TUs
+namespace {
+
+inline BOOL WINAPI FakeGetComputerName(
     _Out_ LPTSTR lpBuffer,
     _Inout_ LPDWORD lpnSize)
 {
     return 0;
 }
 
+// Fixed: Use LPCWSTR instead of LPCTSTR for consistency with GetVolumeInformationW
 typedef BOOL(WINAPI *pGetVolumeInformationW)(
-    _In_opt_ LPCTSTR lpRootPathName,
-    _Out_opt_ LPTSTR lpVolumeNameBuffer,
+    _In_opt_ LPCWSTR lpRootPathName,
+    _Out_opt_ LPWSTR lpVolumeNameBuffer,
     _In_ DWORD nVolumeNameSize,
     _Out_opt_ LPDWORD lpVolumeSerialNumber,
     _Out_opt_ LPDWORD lpMaximumComponentLength,
     _Out_opt_ LPDWORD lpFileSystemFlags,
-    _Out_opt_ LPTSTR lpFileSystemNameBuffer,
+    _Out_opt_ LPWSTR lpFileSystemNameBuffer,
     _In_ DWORD nFileSystemNameSize);
 
-pGetVolumeInformationW RawGetVolumeInformationW = nullptr;
+inline pGetVolumeInformationW RawGetVolumeInformationW = nullptr;
 
-BOOL WINAPI FakeGetVolumeInformation(
-    _In_opt_ LPCTSTR lpRootPathName,
-    _Out_opt_ LPTSTR lpVolumeNameBuffer,
+inline BOOL WINAPI FakeGetVolumeInformation(
+    _In_opt_ LPCWSTR lpRootPathName,
+    _Out_opt_ LPWSTR lpVolumeNameBuffer,
     _In_ DWORD nVolumeNameSize,
     _Out_opt_ LPDWORD lpVolumeSerialNumber,
     _Out_opt_ LPDWORD lpMaximumComponentLength,
     _Out_opt_ LPDWORD lpFileSystemFlags,
-    _Out_opt_ LPTSTR lpFileSystemNameBuffer,
+    _Out_opt_ LPWSTR lpFileSystemNameBuffer,
     _In_ DWORD nFileSystemNameSize)
 {
+    // Fixed: Check for null pointer before calling
+    if (!RawGetVolumeInformationW)
+    {
+        return FALSE;
+    }
+
     if (lpVolumeSerialNumber != nullptr)
     {
-        return false;
+        return FALSE;
     }
     else
     {
@@ -46,7 +56,7 @@ BOOL WINAPI FakeGetVolumeInformation(
     }
 }
 
-BOOL WINAPI MyCryptProtectData(
+inline BOOL WINAPI MyCryptProtectData(
     _In_ DATA_BLOB *pDataIn,
     _In_opt_ LPCWSTR szDataDescr,
     _In_opt_ DATA_BLOB *pOptionalEntropy,
@@ -70,7 +80,7 @@ typedef BOOL(WINAPI *pCryptProtectData)(
     _In_ DWORD dwFlags,
     _Out_ DATA_BLOB *pDataOut);
 
-pCryptProtectData RawCryptProtectData = nullptr;
+inline pCryptProtectData RawCryptProtectData = nullptr;
 
 typedef BOOL(WINAPI *pCryptUnprotectData)(
     _In_ DATA_BLOB *pDataIn,
@@ -81,9 +91,9 @@ typedef BOOL(WINAPI *pCryptUnprotectData)(
     _In_ DWORD dwFlags,
     _Out_ DATA_BLOB *pDataOut);
 
-pCryptUnprotectData RawCryptUnprotectData = nullptr;
+inline pCryptUnprotectData RawCryptUnprotectData = nullptr;
 
-BOOL WINAPI MyCryptUnprotectData(
+inline BOOL WINAPI MyCryptUnprotectData(
     _In_ DATA_BLOB *pDataIn,
     _Out_opt_ LPWSTR *ppszDataDescr,
     _In_opt_ DATA_BLOB *pOptionalEntropy,
@@ -92,7 +102,7 @@ BOOL WINAPI MyCryptUnprotectData(
     _In_ DWORD dwFlags,
     _Out_ DATA_BLOB *pDataOut)
 {
-    if (RawCryptUnprotectData(pDataIn, ppszDataDescr, pOptionalEntropy, pvReserved, pPromptStruct, dwFlags, pDataOut))
+    if (RawCryptUnprotectData && RawCryptUnprotectData(pDataIn, ppszDataDescr, pOptionalEntropy, pvReserved, pPromptStruct, dwFlags, pDataOut))
     {
         return true;
     }
@@ -111,9 +121,9 @@ typedef BOOL(WINAPI *pLogonUserW)(
     DWORD dwLogonProvider,
     PHANDLE phToken);
 
-pLogonUserW RawLogonUserW = nullptr;
+inline pLogonUserW RawLogonUserW = nullptr;
 
-BOOL WINAPI MyLogonUserW(
+inline BOOL WINAPI MyLogonUserW(
     LPCWSTR lpszUsername,
     LPCWSTR lpszDomain,
     LPCWSTR lpszPassword,
@@ -129,9 +139,9 @@ BOOL WINAPI MyLogonUserW(
 
 typedef BOOL(WINAPI *pIsOS)(DWORD dwOS);
 
-pIsOS RawIsOS = nullptr;
+inline pIsOS RawIsOS = nullptr;
 
-BOOL WINAPI MyIsOS(
+inline BOOL WINAPI MyIsOS(
     DWORD dwOS)
 {
     DWORD ret = RawIsOS(dwOS);
@@ -149,9 +159,9 @@ typedef NET_API_STATUS(WINAPI *pNetUserGetInfo)(
     DWORD level,
     LPBYTE *bufptr);
 
-pNetUserGetInfo RawNetUserGetInfo = nullptr;
+inline pNetUserGetInfo RawNetUserGetInfo = nullptr;
 
-NET_API_STATUS WINAPI MyNetUserGetInfo(
+inline NET_API_STATUS WINAPI MyNetUserGetInfo(
     LPCWSTR servername,
     LPCWSTR username,
     DWORD level,
@@ -194,9 +204,9 @@ typedef BOOL(WINAPI *pUpdateProcThreadAttribute)(
     PVOID lpPreviousValue,
     PSIZE_T lpReturnSize);
 
-pUpdateProcThreadAttribute RawUpdateProcThreadAttribute = nullptr;
+inline pUpdateProcThreadAttribute RawUpdateProcThreadAttribute = nullptr;
 
-BOOL WINAPI MyUpdateProcThreadAttribute(
+inline BOOL WINAPI MyUpdateProcThreadAttribute(
     __inout LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
     __in DWORD dwFlags,
     __in DWORD_PTR Attribute,
@@ -230,7 +240,7 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
     return RawUpdateProcThreadAttribute(lpAttributeList, dwFlags, Attribute, lpValue, cbSize, lpPreviousValue, lpReturnSize);
 }
 
-void MakeGreen()
+inline void MakeGreen()
 {
     // Initialize function pointers with original API addresses
     auto RawGetComputerNameW = GetComputerNameW;
@@ -266,5 +276,7 @@ void MakeGreen()
         }
     }
 }
+
+}  // anonymous namespace
 
 #endif  // VIVALDI_PLUS_GREEN_H_
