@@ -33,22 +33,38 @@ bool IsWhitespace(wchar_t ch)
     }
 }
 
-// This function ensures the found switch is a whole "word" by checking for
-// whitespace or string boundaries before and after it. This prevents incorrect
-// partial matches (e.g., finding "--foo" within "--foobar").
+// Find a switch's raw position without mistaking quoted path/URL contents for
+// arguments. Preserve the remainder of --single-argument verbatim for the shell.
 size_t FindStandaloneSwitch(std::wstring_view command_line, std::wstring_view flag)
 {
-    auto pos = command_line.find(flag);
-    while (pos != std::wstring_view::npos)
+    size_t pos = 0;
+    bool executable = true;
+    while (pos < command_line.size())
     {
-        const bool at_start = pos == 0 || IsWhitespace(command_line[pos - 1]);
-        const auto after = pos + flag.size();
-        const bool at_end = after >= command_line.size() || IsWhitespace(command_line[after]);
-        if (at_start && at_end)
+        while (pos < command_line.size() && IsWhitespace(command_line[pos])) ++pos;
+        const size_t start = pos;
+        bool quoted = false;
+        size_t backslashes = 0;
+        while (pos < command_line.size())
         {
-            return pos;
+            const auto ch = command_line[pos];
+            if (!quoted && IsWhitespace(ch)) break;
+            if (ch == L'"' && backslashes % 2 == 0) quoted = !quoted;
+            backslashes = ch == L'\\' ? backslashes + 1 : 0;
+            ++pos;
         }
-        pos = command_line.find(flag, pos + flag.size());
+        if (start == pos) break;
+        if (executable) { executable = false; continue; }
+
+        const std::wstring candidate = L"vivaldi.exe " + std::wstring(command_line.substr(start, pos - start));
+        int count = 0;
+        auto args = CommandLineToArgvW(candidate.c_str(), &count);
+        if (!args) return std::wstring_view::npos;
+        const bool sentinel = count == 2 && std::wstring_view(args[1]) == L"--";
+        const bool found = count == 2 && std::wstring_view(args[1]) == flag;
+        LocalFree(args);
+        if (sentinel) break;
+        if (found) return start;
     }
     return std::wstring_view::npos;
 }
@@ -63,7 +79,7 @@ void TrimTrailingWhitespace(std::wstring &text)
 
 std::wstring QuoteSpaceIfNeeded(std::wstring_view str)
 {
-    if (str.find(L' ') == std::wstring_view::npos)
+    if (!str.empty() && str.find_first_of(L" \t\n\r\v\"") == std::wstring_view::npos)
         return std::wstring(str);
 
     std::wstring escaped(L"\"");
@@ -181,6 +197,29 @@ std::pair<std::vector<std::wstring>, std::vector<std::wstring>> SeparateSentinel
     args.erase(args.begin() + sentinel_index, args.end());
 
     return {std::move(args), std::move(trailing_args)};
+}
+
+bool HasCommandLineSwitch(std::wstring_view command_line, std::wstring_view flag, bool allow_value = false)
+{
+    const auto [prefix, suffix] = SplitSingleArgumentSwitch(std::wstring(command_line));
+    for (const auto& arg : ParseCommandLineArgs(prefix))
+    {
+        if (arg == L"--") break;
+        if (arg == flag || (allow_value && arg.size() > flag.size() &&
+            arg.compare(0, flag.size(), flag) == 0 && arg[flag.size()] == L'='))
+            return true;
+    }
+    return false;
+}
+
+std::vector<std::wstring> ConfigCommandLineArgs()
+{
+    auto [prefix, suffix] = SplitSingleArgumentSwitch(L"vivaldi.exe " + GetConfig().GetCommandLine());
+    auto [args, trailing] = SeparateSentinelArgs(ParseCommandLineArgs(prefix));
+    args.erase(std::remove_if(args.begin(), args.end(), [](const std::wstring& arg) {
+        return arg == L"--gopher" || arg == L"--type" || StartsWith(arg, L"--type=");
+    }), args.end());
+    return args;
 }
 
 }  // namespace
@@ -396,6 +435,11 @@ inline std::wstring GetCommand(LPWSTR param)
 
     // Separate arguments before and after the `--` sentinel
     auto [main_args, trailing_args] = SeparateSentinelArgs(std::move(args));
+
+    // Chromium uses the last occurrence of a switch: explicit launch arguments
+    // therefore take precedence over INI additions.
+    auto configured_args = ConfigCommandLineArgs();
+    main_args.insert(main_args.begin(), configured_args.begin(), configured_args.end());
 
     // Add marker flag to indicate portable mode is active
     main_args.insert(main_args.begin(), L"--gopher");

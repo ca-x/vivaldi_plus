@@ -22,6 +22,35 @@
 
 ### 自定义配置
 
+#### 网页设置（1.6 起）
+
+打开 `vivaldi://about`（或 `vivaldi://version`），点击 **Vivaldi++ → Settings / 设置**。
+网页、样式、脚本全部嵌入 `version.dll`；DLL 在主浏览器进程中启动本地服务，
+通常位于 `http://127.0.0.1:16877/settings.html`（端口占用时尝试 16878–16887）。
+网页会自动加载 DLL 同目录的 `config.ini`，支持中文/英文、浅色/深色/跟随系统，
+以及配置导入导出。语言和主题记忆在浏览器中，与启动配置独立。
+
+点击保存会原子写入原来的 INI，保留未知配置和注释；检测到文件被外部修改时拒绝覆盖。
+没有配置文件时按默认值显示，第一次保存时创建 UTF-16LE 文件以支持 Windows INI 的中文路径。
+更改数据目录不会移动现有数据。**保存后完全退出并重新启动 Vivaldi 才会生效。**
+
+首次运行以及 Vivaldi 更新后，DLL 会释放两个关于页集成工具至 `App/vivaldi-plus-tools`，
+并在浏览器入口运行前通过 Windows PowerShell 更新关于页模板；网页本身不释放为文件。
+原始资源备份为版本目录内的 `resources.pak.vivaldi-plus-original`。只修改能够明确识别的模板，
+不支持的版本、只读目录或策略禁止 PowerShell 时保留原资源，详情见 `vivaldi-plus-tools/integration.log`。
+此时仍可使用上述本地地址；服务只在浏览器运行期间可用。
+
+恢复原始关于页（先退出浏览器）：
+
+```powershell
+powershell -NoProfile -File .\vivaldi-plus-tools\Install-AboutPage.ps1 -AppDir . -SettingsUrl http://127.0.0.1:16877/settings.html -Restore
+```
+
+恢复操作同时创建 `App/vivaldi-plus-about-disabled`，避免下次启动重新安装；删除该标记可重新启用。
+
+本地服务只监听 IPv4 回环地址。配置接口固定指向本安装的 `config.ini`，
+校验 Host、会话令牌、写入来源，不对局域网提供访问，也不支持任意文件读取或执行命令。
+
 本DLL提供配置选项，在DLL同目录新建 `config.ini` 文件即可配置。
 
 #### 快速开始
@@ -265,6 +294,22 @@ xmake
 > - ~~Right-click + wheel to scroll tabs~~
 
 ### Configuration
+
+#### Web settings (1.6 and later)
+
+Open `vivaldi://about` or `vivaldi://version` and follow **Vivaldi++ → Settings / 设置**.
+All HTML, CSS and JavaScript are embedded in `version.dll` and served directly from DLL resources.
+The loopback service uses `http://127.0.0.1:16877/settings.html`, with ports 16878–16887 as fallbacks.
+It loads the adjacent `config.ini` automatically. Chinese/English and light/dark/system themes are supported.
+Saving retains unknown INI entries and comments, detects external edits, and writes UTF-16LE atomically.
+Fully exit and restart Vivaldi to apply configuration changes. Changing directory settings does not move data.
+
+On first launch or browser upgrade, two embedded integration tools are extracted to `vivaldi-plus-tools`.
+Windows PowerShell patches the identified about-page template before the browser entry point runs,
+retaining the original `resources.pak.vivaldi-plus-original` next to the version's resource pack.
+Unsupported resources or write/policy failures leave the original intact; see `vivaldi-plus-tools/integration.log`.
+The settings service remains accessible directly while the browser is running.
+It binds only to `127.0.0.1` and protects its fixed-path configuration API with host, token and origin checks.
 
 This DLL provides configuration options. Create a `config.ini` file in the same directory as the DLL.
 

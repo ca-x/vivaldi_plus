@@ -11,6 +11,8 @@
 #include "appid.h"
 #include "green.h"
 #include "hotkey.h"
+#include "web_settings.h"
+#include "about_integration.h"
 
 // Global module instance
 HMODULE hInstance = nullptr;
@@ -24,6 +26,9 @@ void VivaldiPlus()
 {
     // Set custom AppUserModelID for Windows taskbar
     SetAppId();
+
+    InitializeWebSettings();
+    InitializeAboutPage(GetWebSettingsUrl());
 
     // Apply portable mode registry patches
     MakeGreen();
@@ -39,7 +44,7 @@ void VivaldiPlusCommand(LPWSTR param)
         return;
 
     // Check if already running in portable mode (--gopher flag present)
-    if (!wcsstr(param, L"--gopher"))
+    if (!HasCommandLineSwitch(param, L"--gopher"))
     {
         // Not in portable mode yet, restart with portable parameters
         Portable(param);
@@ -64,7 +69,7 @@ int Loader()
 
     // Only process main browser process, not child processes
     LPWSTR param = GetCommandLineW();
-    if (param && !wcsstr(param, L"-type="))
+    if (param && !HasCommandLineSwitch(param, L"--type", true))
     {
         // Main process: handle portable mode
         VivaldiPlusCommand(param);

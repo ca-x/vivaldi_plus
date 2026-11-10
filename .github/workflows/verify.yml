@@ -1,0 +1,62 @@
+name: verify
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Native regression tests
+        shell: pwsh
+        run: |
+          ./tests/run-native.ps1
+          ./tests/run-web-http.ps1
+      - name: Web and about-page regression tests
+        run: node --test tests/*.test.mjs web/tests/*.test.cjs
+      - name: Build the embedded settings test host
+        shell: pwsh
+        run: ./tests/build-web-host.ps1
+      - name: Exercise embedded resources and configuration API
+        shell: pwsh
+        run: |
+          $env:VIVALDI_PLUS_WEB_HOST = (Resolve-Path ./build/test-host/web_host.exe).Path
+          node --test tests/backend.test.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-web-test-host
+          path: build/test-host/web_host.exe
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86, x64, arm64]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: xmake-io/github-action-setup-xmake@v1
+      - name: Configure
+        run: xmake f -a ${{ matrix.arch }} -m release -y
+      - name: Build embedded settings DLL
+        run: xmake -y
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-windows-${{ matrix.arch }}
+          path: build/release/${{ matrix.arch }}/version.dll

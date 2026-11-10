@@ -17,7 +17,7 @@ private:
     bool win32k_enabled_;
     bool debug_log_enabled_;
     std::wstring command_line_;
-    std::wstring disable_features_;
+    std::wstring disable_features_ = L"WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading";
     bool has_custom_disable_features_;
     std::wstring boss_key_;  // Boss key hotkey string (e.g., "Ctrl+Alt+B")
 
@@ -64,12 +64,6 @@ private:
         {
             disable_features_ = features_buffer;
             has_custom_disable_features_ = true;
-        }
-        else
-        {
-            // Default features to disable for compatibility
-            disable_features_ = L"WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading";
-            has_custom_disable_features_ = false;
         }
 
         // Read boss_key setting from [hotkey] section

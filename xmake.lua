@@ -51,10 +51,11 @@ target("vivaldi_plus")
     set_languages("c++20")
     set_targetdir("$(builddir)/$(mode)/$(arch)")
     set_basename("version")
+    add_includedirs(os.projectdir())
     add_deps("detours")
     add_files("src/*.cpp")
     add_files("src/*.rc")
-    add_links("user32", "crypt32", "propsys", "netapi32")
+    add_links("user32", "crypt32", "propsys", "netapi32", "ws2_32", "bcrypt")
     if is_mode("release") and not is_arch("arm64") then
         add_packages("vc-ltl5")
     end
