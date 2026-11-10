@@ -110,10 +110,10 @@ struct Configuration {
     }
 };
 
-bool ReadConfig(Configuration& config)
+bool ReadConfigAt(const std::wstring& path, Configuration& config, bool decodeText = true)
 {
     File file;
-    file.handle = CreateFileW(configPath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    file.handle = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file.handle == INVALID_HANDLE_VALUE) return GetLastError() == ERROR_FILE_NOT_FOUND;
     config.exists = true;
     LARGE_INTEGER size = {};
@@ -121,7 +121,12 @@ bool ReadConfig(Configuration& config)
     config.bytes.resize(static_cast<size_t>(size.QuadPart));
     DWORD read = 0;
     if (!config.bytes.empty() && (!ReadFile(file.handle, config.bytes.data(), static_cast<DWORD>(config.bytes.size()), &read, nullptr) || read != config.bytes.size())) return false;
-    return Decode(config.bytes, config.text);
+    return !decodeText || Decode(config.bytes, config.text);
+}
+
+bool ReadConfig(Configuration& config)
+{
+    return ReadConfigAt(configPath, config);
 }
 
 web_http::Response Error(int status, const char* message)
@@ -154,12 +159,48 @@ web_http::Response WriteConfig(const web_http::Request& request)
         DeleteFileW(temp);
         return Error(409, "Configuration changed; reload before saving");
     }
-    if (success) success = previous.exists ? ReplaceFileW(configPath.c_str(), temp, nullptr, 0, nullptr, nullptr) != FALSE
-        : MoveFileExW(temp, configPath.c_str(), MOVEFILE_WRITE_THROUGH) != FALSE;
-    if (!success) { DeleteFileW(temp); return Error(500, "Could not save configuration; original file retained"); }
+    if (!success) { DeleteFileW(temp); return Error(500, "Could not write temporary configuration; original file retained"); }
+    if (previous.exists) {
+        const std::wstring displaced = std::wstring(temp) + L".previous";
+        const std::wstring rollback = std::wstring(temp) + L".rollback";
+        // ReplaceFile captures the actual file present at replacement time, closing
+        // the gap between our last revision check and the filesystem operation.
+        if (GetFileAttributesW(displaced.c_str()) != INVALID_FILE_ATTRIBUTES || GetFileAttributesW(rollback.c_str()) != INVALID_FILE_ATTRIBUTES) {
+            DeleteFileW(temp);
+            return Error(500, "Configuration recovery filename is already in use");
+        }
+        if (!ReplaceFileW(configPath.c_str(), temp, displaced.c_str(), 0, nullptr, nullptr)) {
+            DeleteFileW(temp);
+            return Error(500, "Could not replace configuration; any recovery backup was retained");
+        }
+        Configuration captured;
+        if (!ReadConfigAt(displaced, captured, false) || captured.Revision() != previous.Revision()) {
+            Configuration target;
+            if (ReadConfigAt(configPath, target, false) && target.exists && target.bytes == request.body) {
+                // Roll back only while our own candidate is still current. A second
+                // backup preserves an editor change racing with this rollback too.
+                if (ReplaceFileW(configPath.c_str(), displaced.c_str(), rollback.c_str(), 0, nullptr, nullptr)) {
+                    Configuration restored;
+                    if (ReadConfigAt(rollback, restored, false) && restored.exists && restored.bytes == request.body) DeleteFileW(rollback.c_str());
+                }
+            }
+            if (GetFileAttributesW(displaced.c_str()) != INVALID_FILE_ATTRIBUTES || GetFileAttributesW(rollback.c_str()) != INVALID_FILE_ATTRIBUTES) {
+                const auto message = "Configuration changed during saving; reload before saving. Recovery files retained beside config.ini with prefix " + Utf8(temp);
+                return Error(409, message.c_str());
+            }
+            return Error(409, "Configuration changed during saving; external changes restored. Reload before saving");
+        }
+        DeleteFileW(displaced.c_str());
+    } else if (!MoveFileExW(temp, configPath.c_str(), MOVEFILE_WRITE_THROUGH)) {
+        DeleteFileW(temp);
+        Configuration target;
+        if (ReadConfigAt(configPath, target, false) && target.exists) return Error(409, "Configuration was created externally; reload before saving");
+        return Error(500, "Could not create configuration");
+    }
     WritePrivateProfileStringW(nullptr, nullptr, nullptr, configPath.c_str());
     Configuration saved;
     if (!ReadConfig(saved)) return Error(500, "Saved configuration could not be read");
+    if (!saved.exists || saved.bytes != request.body) return Error(409, "Configuration changed after saving; reload before saving");
     return {200, "application/json; charset=utf-8", saved.JsonBody()};
 }
 
@@ -217,14 +258,18 @@ void InitializeWebSettings()
     const auto name = L"Local\\VivaldiPlusSettings-" + std::wstring(hash.begin(), hash.end());
     SetLastError(ERROR_SUCCESS);
     installationMutex = CreateMutexW(nullptr, FALSE, name.c_str());
-    if (!installationMutex || GetLastError() == ERROR_ALREADY_EXISTS) return;
+    const DWORD mutexError = GetLastError();
+    if (!installationMutex) return;
+    const auto releaseMutex = [] { CloseHandle(installationMutex); installationMutex = nullptr; };
+    if (mutexError == ERROR_ALREADY_EXISTS) { releaseMutex(); return; }
     unsigned char random[32] = {};
-    if (BCryptGenRandom(nullptr, random, sizeof(random), BCRYPT_USE_SYSTEM_PREFERRED_RNG) < 0) { DebugLog(L"Web settings random token generation failed"); return; }
+    if (BCryptGenRandom(nullptr, random, sizeof(random), BCRYPT_USE_SYSTEM_PREFERRED_RNG) < 0) { releaseMutex(); DebugLog(L"Web settings random token generation failed"); return; }
     constexpr char hex[] = "0123456789abcdef";
+    token.clear();
     for (unsigned char c : random) { token += hex[c >> 4]; token += hex[c & 15]; }
     configPath = app + L"\\config.ini";
     unsigned short port = 0;
-    if (!web_http::Start(Handle, port)) { DebugLog(L"Web settings could not bind a loopback port"); return; }
+    if (!web_http::Start(Handle, port)) { releaseMutex(); DebugLog(L"Web settings could not bind a loopback port"); return; }
     authority = "127.0.0.1:" + std::to_string(port);
     origin = "http://" + authority;
     const auto url = origin + "/settings.html";

@@ -5,6 +5,7 @@
 #include <windows.h>
 
 #include "web_http.h"
+#include "web_peer.h"
 
 #include <algorithm>
 #include <charconv>
@@ -85,7 +86,7 @@ DWORD WINAPI Run(void* context)
         int length = sizeof(remote);
         SOCKET client = accept(server->socket, reinterpret_cast<sockaddr*>(&remote), &length);
         if (client == INVALID_SOCKET) break;
-        if (remote.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) Serve(client, server->handler);
+        if (remote.sin_addr.s_addr == htonl(INADDR_LOOPBACK) && IsSameUserPeer(client)) Serve(client, server->handler);
         closesocket(client);
     }
     closesocket(server->socket);

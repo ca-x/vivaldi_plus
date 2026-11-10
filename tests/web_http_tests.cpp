@@ -5,6 +5,7 @@
 #include <windows.h>
 
 #include "../src/web_http.h"
+#include "../src/web_peer.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -58,6 +59,7 @@ std::string Exchange(unsigned short port, const std::string& request)
 
 int main()
 {
+    Require(!web_http::IsSameUserPeer(INVALID_SOCKET), "invalid connection must fail closed");
     web_http::Request request;
     size_t length = 0;
     Require(web_http::ParseHead("PUT /api/config HTTP/1.1\r\nHost: 127.0.0.1:16877\r\nContent-Length: 6\r\nX-Vivaldi-Plus-Token: abc", request, length), "valid PUT rejected");

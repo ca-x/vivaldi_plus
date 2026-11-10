@@ -2,6 +2,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const ini = require('../ini.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 
 test('unknown sections, keys and comments survive a setting update', () => {
   const source = '; 用户注释\r\n[GENERAL]\r\n debug_log = 0\r\ncustom=stay\r\n\r\n[other]\r\npath=C:\\数据\\a=b\r\n';
@@ -46,4 +49,14 @@ test('adding several keys to an existing section does not duplicate the section'
   assert.equal((result.match(/\[general\]/g) || []).length, 1);
   assert.equal(ini.read(result)['general.command_line'], '--force-dark-mode');
   assert.ok(result.includes('[other]\nx=2'));
+});
+test('every static label and status key is available in both languages', () => {
+  const context = {};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../i18n.js'), 'utf8'), context);
+  const messages = context.VivaldiMessages;
+  assert.deepEqual(Object.keys(messages.en).sort(), Object.keys(messages['zh-CN']).sort());
+  const html = fs.readFileSync(path.join(__dirname, '../settings.html'), 'utf8');
+  for (const match of html.matchAll(/data-i18n="([^"]+)"/g)) {
+    for (const language of ['en', 'zh-CN']) assert.ok(messages[language][match[1]], `${language}: ${match[1]}`);
+  }
 });

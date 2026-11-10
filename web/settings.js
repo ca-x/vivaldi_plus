@@ -35,6 +35,10 @@
     document.documentElement.lang = language;
     document.title = t('title');
     document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
+    document.querySelectorAll('.field-error[data-error-key]').forEach(node => {
+      node.textContent = t(node.dataset.errorKey);
+      document.getElementById(node.dataset.field).setCustomValidity(t(node.dataset.errorKey));
+    });
     document.querySelector('nav').setAttribute('aria-label', t('settings'));
     $('language').value = language;
     if (bridge) {
@@ -81,10 +85,12 @@
       }
       const oldError = $(`${field.id}-error`); if (oldError) oldError.remove();
       field.setCustomValidity(error ? t(error) : '');
-      field.toggleAttribute('aria-invalid', Boolean(error));
+      if (error) field.setAttribute('aria-invalid', 'true');
+      else field.removeAttribute('aria-invalid');
       if (error) {
         const message = document.createElement('p'); message.id = `${field.id}-error`;
-        message.className = 'field-error'; message.textContent = t(error); field.after(message);
+        message.className = 'field-error'; message.dataset.errorKey = error; message.dataset.field = field.id;
+        message.textContent = t(error); field.after(message);
         if (valid) field.focus(); valid = false;
       }
     }
@@ -188,7 +194,11 @@
     const baseline = state.snapshot;
     populate(template); state.snapshot = baseline; markDirty(); showStatus('ready');
   });
-  fields.forEach(field => field.addEventListener('input', () => { field.setCustomValidity(''); markDirty(); }));
+  fields.forEach(field => field.addEventListener('input', () => {
+    field.setCustomValidity(''); field.removeAttribute('aria-invalid');
+    const error = $(`${field.id}-error`); if (error) error.remove();
+    markDirty();
+  }));
   $('language').addEventListener('change', event => { language = event.target.value; persist('language', language); translate(); });
   $('theme').addEventListener('change', event => { theme = event.target.value; persist('theme', theme); applyTheme(); });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (theme === 'system') applyTheme(); });

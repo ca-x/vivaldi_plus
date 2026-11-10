@@ -4,7 +4,7 @@ $temp = Join-Path ([IO.Path]::GetTempPath()) ('vivaldi-plus-http-tests-' + [guid
 New-Item -ItemType Directory -Path $temp | Out-Null
 Push-Location $temp
 try {
-    & cl /nologo /std:c++20 /EHsc /W4 /utf-8 (Join-Path $PSScriptRoot 'web_http_tests.cpp') (Join-Path $root 'src\web_http.cpp') /Fe:web_http_tests.exe /link ws2_32.lib
+    & cl /nologo /std:c++20 /EHsc /W4 /utf-8 (Join-Path $PSScriptRoot 'web_http_tests.cpp') (Join-Path $root 'src\web_http.cpp') (Join-Path $root 'src\web_peer.cpp') /Fe:web_http_tests.exe /link ws2_32.lib iphlpapi.lib advapi32.lib
     if ($LASTEXITCODE -ne 0) { throw 'HTTP test compilation failed' }
     & .\web_http_tests.exe
     if ($LASTEXITCODE -ne 0) { throw 'HTTP parser/socket tests failed' }

@@ -6,6 +6,12 @@ param(
     [switch]$Startup
 )
 $ErrorActionPreference = 'Stop'
+function Get-ResourceHash([string]$Path) {
+    $stream = [IO.File]::OpenRead($Path)
+    $hash = [Security.Cryptography.SHA256]::Create()
+    try { return [BitConverter]::ToString($hash.ComputeHash($stream)).Replace('-', '') }
+    finally { $stream.Dispose(); $hash.Dispose() }
+}
 $app = (Resolve-Path -LiteralPath $AppDir).Path
 if (-not (Test-Path -LiteralPath (Join-Path $app 'vivaldi.exe') -PathType Leaf)) { throw 'AppDir must contain vivaldi.exe' }
 # The startup caller runs before the browser entry point reads resources.pak.
@@ -22,10 +28,10 @@ $selected = $directories | Sort-Object { [version]$_.Name } -Descending | Select
 $pakPath = Join-Path $selected.FullName 'resources.pak'
 $backup = $pakPath + '.vivaldi-plus-original'
 $receipt = $pakPath + '.vivaldi-plus.json'
-$currentHash = (Get-FileHash -LiteralPath $pakPath -Algorithm SHA256).Hash
+$currentHash = (Get-ResourceHash $pakPath)
 if (Test-Path -LiteralPath $receipt) {
     $record = Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
-    if (-not (Test-Path -LiteralPath $backup) -or (Get-FileHash -LiteralPath $backup).Hash -ne $record.originalHash) { throw 'Original resource backup is missing or changed.' }
+    if (-not (Test-Path -LiteralPath $backup) -or (Get-ResourceHash $backup) -ne $record.originalHash) { throw 'Original resource backup is missing or changed.' }
     if ($currentHash -ne $record.patchedHash -and $currentHash -ne $record.originalHash) { throw 'Browser resources changed after integration; refusing to overwrite them.' }
 } elseif (Test-Path -LiteralPath $backup) { throw 'Untracked backup found; refusing to overwrite it.' }
 if ($Restore) {
@@ -44,17 +50,30 @@ $candidateHash = [BitConverter]::ToString([Security.Cryptography.SHA256]::Create
 if ($currentHash -eq $candidateHash) { Write-Output 'About page already integrated.'; exit 0 }
 if (-not (Test-Path -LiteralPath $backup)) { [IO.File]::WriteAllBytes($backup, $original) }
 $temp = $pakPath + '.vivaldi-plus-tmp'
+$swapped = $pakPath + '.vivaldi-plus-swapped-' + [Guid]::NewGuid().ToString('N')
+$removeSwapped = $false
 try {
     [IO.File]::WriteAllBytes($temp, $candidate)
-    [IO.File]::Replace($temp, $pakPath, [System.Management.Automation.Language.NullString]::Value)
-    @{ originalHash = (Get-FileHash -LiteralPath $backup).Hash; patchedHash = $candidateHash; version = $Version; settings = $SettingsUrl } |
+    if ((Get-ResourceHash $pakPath) -ne $currentHash) { throw 'Browser resources changed during integration.' }
+    # Capture the exact destination replaced, then verify it as well as the preflight hash.
+    [IO.File]::Replace($temp, $pakPath, $swapped)
+    if ((Get-ResourceHash $swapped) -ne $currentHash) { throw 'A concurrent browser update was detected; restoring its resources.' }
+    if ((Get-ResourceHash $pakPath) -ne $candidateHash) { throw 'Browser resources changed before integration completed.' }
+    @{ originalHash = (Get-ResourceHash $backup); patchedHash = $candidateHash; version = $Version; settings = $SettingsUrl } |
         ConvertTo-Json | Set-Content -LiteralPath $receipt -Encoding UTF8
+    $removeSwapped = $true
 } catch {
     # Restore only our own candidate, never overwrite a concurrent updater's file.
-    if ((Get-FileHash -LiteralPath $pakPath).Hash -eq $candidateHash) { [IO.File]::Copy($backup, $pakPath, $true) }
+    if ((Get-ResourceHash $pakPath) -eq $candidateHash) {
+        $recovery = if (Test-Path -LiteralPath $swapped) { $swapped } else { $backup }
+        [IO.File]::Copy($recovery, $pakPath, $true)
+        $removeSwapped = $true
+    }
     throw
 } finally {
     if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp }
+    if ($removeSwapped -and (Test-Path -LiteralPath $swapped)) { Remove-Item -LiteralPath $swapped }
+    elseif (Test-Path -LiteralPath $swapped) { Write-Warning ('Recovery copy retained: ' + $swapped) }
 }
 Write-Output ('About page integrated: ' + $pakPath)
 if (Test-Path -LiteralPath (Join-Path $app 'vivaldi-plus-about-disabled')) { Remove-Item -LiteralPath (Join-Path $app 'vivaldi-plus-about-disabled') }

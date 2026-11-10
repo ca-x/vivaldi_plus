@@ -55,7 +55,7 @@ target("vivaldi_plus")
     add_deps("detours")
     add_files("src/*.cpp")
     add_files("src/*.rc")
-    add_links("user32", "crypt32", "propsys", "netapi32", "ws2_32", "bcrypt")
+    add_links("user32", "crypt32", "propsys", "netapi32", "ws2_32", "bcrypt", "iphlpapi")
     if is_mode("release") and not is_arch("arm64") then
         add_packages("vc-ltl5")
     end
