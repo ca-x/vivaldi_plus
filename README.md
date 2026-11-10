@@ -1,3 +1,5 @@
+<img src="web/logo.png" width="80" height="80" alt="Vivaldi++ Logo">
+
 # Vivaldi Plus
 
 [![nightly build](https://github.com/ca-x/vivaldi_plus/actions/workflows/nightly.yml/badge.svg)](https://github.com/ca-x/vivaldi_plus/actions/workflows/nightly.yml)
@@ -24,8 +26,8 @@
 
 #### 网页设置（1.6 起）
 
-打开 `vivaldi://about`（或 `vivaldi://version`），点击 **Vivaldi++ → Settings / 设置**。
-网页、样式、脚本全部嵌入 `version.dll`；DLL 在主浏览器进程中启动本地服务，
+打开 `vivaldi:about`，在“系统与构建”中点击 **Vivaldi++ → 设置**，入口跟随浏览器语言。
+网页、Logo、样式、脚本全部嵌入 `version.dll`；DLL 在主浏览器进程中启动本地服务，
 通常位于 `http://127.0.0.1:16877/settings.html`（端口占用时尝试 16878–16887）。
 网页会自动加载 DLL 同目录的 `config.ini`，支持中文/英文、浅色/深色/跟随系统，
 以及配置导入导出。语言和主题记忆在浏览器中，与启动配置独立。
@@ -34,25 +36,17 @@
 没有配置文件时按默认值显示，第一次保存时创建 UTF-16LE 文件以支持 Windows INI 的中文路径。
 更改数据目录不会移动现有数据。**保存后完全退出并重新启动 Vivaldi 才会生效。**
 
-首次运行以及 Vivaldi 更新后，DLL 会释放关于页集成工具至 `App/vivaldi-plus-tools`，
-并在浏览器入口运行前通过 Windows PowerShell 更新关于页模板；网页本身不释放为文件。
-原始资源备份为版本目录内的 `resources.pak.vivaldi-plus-original`。只修改能够明确识别的模板，
-不支持的版本、只读目录或策略禁止 PowerShell 时保留原资源，详情见 `vivaldi-plus-tools/integration.log`。
-此时仍可使用上述本地地址；服务只在浏览器运行期间可用。
-
-1.6.0.1 同时支持 Vivaldi 8.2 的新版 `vivaldi:about` 页面：在其 React 界面加入 Vivaldi++ 卡片，
-使用原生新标签页导航进入设置；保留 `bundle.js.vivaldi-plus-original` 以便恢复。
-
-恢复原始关于页（先退出浏览器）：
-
-```powershell
-powershell -NoProfile -File .\vivaldi-plus-tools\Install-AboutPage.ps1 -AppDir . -SettingsUrl http://127.0.0.1:16877/settings.html -Restore
-```
-
-恢复操作同时创建 `App/vivaldi-plus-about-disabled`，避免下次启动重新安装；删除该标记可重新启用。
+从 1.6.0.2 起，关于页入口由 C++ 直接集成，仅修改 Vivaldi 界面中的一处入口，
+不再释放或执行 PowerShell/C#，不修改 Chromium 的 `resources.pak`。
+网页和 Logo 直接从 DLL 资源提供，不释放到安装目录。
+只在能识别且可写时更新入口；不创建备份或安装记录，重复启动且入口相同时不会重写文件。
+遇到不支持的界面版本或外部修改时保留原文件；服务仍可通过上述本地地址访问。
+创建 `App/vivaldi-plus-about-disabled` 可禁止自动集成，删除该标记后恢复。
 
 本地服务只监听 IPv4 回环地址。配置接口固定指向本安装的 `config.ini`，
 校验 Host、会话令牌、写入来源，不对局域网提供访问，也不支持任意文件读取或执行命令。
+同安装的多个实例共用一个服务、端口和会话；服务所属实例退出后由其他存活实例接管。
+未发现可集成的关于页入口时不启动设置服务。
 
 本DLL提供配置选项，在DLL同目录新建 `config.ini` 文件即可配置。
 
@@ -300,20 +294,20 @@ xmake
 
 #### Web settings (1.6 and later)
 
-Open `vivaldi://about` or `vivaldi://version` and follow **Vivaldi++ → Settings / 设置**.
-All HTML, CSS and JavaScript are embedded in `version.dll` and served directly from DLL resources.
+Open `vivaldi:about` and follow **Vivaldi++ → Settings** under System and Build. The entry follows the browser language.
+All HTML, logo assets, CSS and JavaScript are embedded in `version.dll` and served directly from DLL resources.
 The loopback service uses `http://127.0.0.1:16877/settings.html`, with ports 16878–16887 as fallbacks.
 It loads the adjacent `config.ini` automatically. Chinese/English and light/dark/system themes are supported.
 Saving retains unknown INI entries and comments, detects external edits, and writes UTF-16LE atomically.
 Fully exit and restart Vivaldi to apply configuration changes. Changing directory settings does not move data.
 
-On first launch or browser upgrade, embedded integration tools are extracted to `vivaldi-plus-tools`.
-Windows PowerShell patches the identified about-page template before the browser entry point runs,
-retaining the original `resources.pak.vivaldi-plus-original` next to the version's resource pack.
-Vivaldi 8.2's React about page is also integrated, with a separate `bundle.js.vivaldi-plus-original` backup.
-Unsupported resources or write/policy failures leave the original intact; see `vivaldi-plus-tools/integration.log`.
+Version 1.6.0.2 integrates the single about entry directly in C++, without extracting or executing installer scripts.
+It leaves `resources.pak` alone and creates no backups or installation records. An unchanged entry is not rewritten.
+Unsupported UI bundles or external changes are left intact. No page assets are extracted to disk.
 The settings service remains accessible directly while the browser is running.
 It binds only to `127.0.0.1` and protects its fixed-path configuration API with host, token and origin checks.
+Instances from the same installation share one service and port, with takeover when the owner exits.
+The settings service is not started when no supported about-page entry is found.
 
 This DLL provides configuration options. Create a `config.ini` file in the same directory as the DLL.
 

@@ -134,9 +134,12 @@ bool ParseHead(const std::string& head, Request& request, size_t& bodyLength)
 
 bool Start(Handler handler, unsigned short& port)
 {
+    if (port != 0 && (port < 16877 || port > 16887)) return false;
     WSADATA data = {};
     if (WSAStartup(MAKEWORD(2, 2), &data) != 0) return false;
-    for (unsigned short candidate = 16877; candidate <= 16887; candidate++) {
+    const unsigned short first = port == 0 ? 16877 : port;
+    const unsigned short last = port == 0 ? 16887 : port;
+    for (unsigned short candidate = first; candidate <= last; candidate++) {
         SOCKET socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (socket == INVALID_SOCKET) break;
         const BOOL exclusive = TRUE;

@@ -7,51 +7,51 @@
   <meta name="vivaldi-plus-token" content="__VIVALDI_PLUS_TOKEN__">
   <meta name="description" content="Offline configuration editor for Vivaldi Plus.">
   <title>Vivaldi++ 设置</title>
+  <link rel="icon" href="logo.png" type="image/png">
   <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="logo.css">
   <script src="ini.js" defer></script>
   <script src="i18n.js" defer></script>
   <script src="settings.js" defer></script>
+  <script src="logo.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#main" data-i18n="skip">跳至设置内容</a>
   <aside class="sidebar">
-    <a class="brand" href="#main" aria-label="Vivaldi++"><span class="brand-mark" aria-hidden="true">++</span><span>Vivaldi<span class="brand-plus">++</span><small data-i18n="settings">设置</small></span></a>
-    <p class="sidebar-caption" data-i18n="local">本地配置</p>
+    <a class="brand" href="#main" aria-label="Vivaldi++"><span class="brand-logo" aria-hidden="true"><img class="logo-image" src="logo.png" width="128" height="128" alt=""></span><span>Vivaldi<span class="brand-plus">++</span><small data-i18n="settings">设置</small></span></a>
     <nav aria-label="Settings">
-      <a href="#general"><span aria-hidden="true">01</span><span data-i18n="general">常规</span></a>
-      <a href="#paths"><span aria-hidden="true">02</span><span data-i18n="paths">存储目录</span></a>
-      <a href="#hotkey"><span aria-hidden="true">03</span><span data-i18n="hotkey">快捷键</span></a>
-      <a href="#appearance"><span aria-hidden="true">04</span><span data-i18n="appearance">外观与语言</span></a>
-      <a href="#about"><span aria-hidden="true">05</span><span data-i18n="about">关于</span></a>
+      <a href="#general" data-i18n="general">常规</a>
+      <a href="#paths" data-i18n="paths">存储目录</a>
+      <a href="#hotkey" data-i18n="hotkey">快捷键</a>
+      <a href="#appearance" data-i18n="appearance">外观与语言</a>
+      <a href="#about" data-i18n="about">关于</a>
     </nav>
-    <div class="sidebar-bottom"><span class="local-dot" aria-hidden="true"></span><span data-i18n="offline">离线可用 · 无需账户</span></div>
   </aside>
   <div class="workspace">
-    <header class="topbar"><span>Vivaldi++ <span class="slash">/</span> <span data-i18n="settings">设置</span></span><span class="pill" data-i18n="local">本地配置</span></header>
+    <header class="topbar"><span>Vivaldi++ <span class="slash">/</span> <span data-i18n="settings">设置</span></span></header>
     <main id="main" tabindex="-1">
-      <div class="page-heading"><p class="eyebrow" data-i18n="eyebrow">你的浏览器，你的偏好</p><h1 data-i18n="heading">Vivaldi++ 设置</h1><p data-i18n="intro">管理便携浏览器的配置，让每一次启动都恰到好处。</p></div>
+      <div class="page-heading"><h1 data-i18n="heading">Vivaldi++ 设置</h1></div>
       <section class="file-card" aria-labelledby="file-title"><div><h2 id="file-title" data-i18n="fileTitle">从配置文件开始</h2><p data-i18n="fileHelp">选择 Vivaldi 的 App 目录下的 config.ini。没有配置文件时，可以直接调整选项并另存为 config.ini。</p><div id="file-name" class="filename" data-i18n="fileNone">尚未选择文件</div></div><button id="open" type="button" class="button secondary" data-i18n="open">打开配置文件</button><input id="file-input" type="file" accept=".ini" hidden></section>
       <p id="fallback" class="note" data-i18n="fallback" hidden></p>
       <form id="configuration" novalidate>
-        <section id="general" class="settings-section" aria-labelledby="general-title"><div class="section-heading"><span class="section-number">01</span><div><h2 id="general-title" data-i18n="general">常规</h2><p data-i18n="generalHelp"></p></div></div><div class="panel">
+        <section id="general" class="settings-section" aria-labelledby="general-title"><div class="section-heading"><h2 id="general-title" data-i18n="general">常规</h2></div><div class="panel">
           <div class="toggle-row"><div><label for="win32k" data-i18n="win32k"></label><p id="win32k-help" data-i18n="win32kHelp"></p></div><input id="win32k" type="checkbox" role="switch" data-setting="general.win32k" aria-describedby="win32k-help"></div>
           <div class="toggle-row"><div><label for="debug" data-i18n="debug"></label><p id="debug-help" data-i18n="debugHelp"></p></div><input id="debug" type="checkbox" role="switch" data-setting="general.debug_log" aria-describedby="debug-help"></div>
           <div class="field"><label for="features" data-i18n="features"></label><input id="features" class="mono" type="text" maxlength="4094" data-setting="general.disable_features" aria-describedby="features-help"><p id="features-help" data-i18n="featuresHelp"></p></div>
           <div class="field"><label for="command" data-i18n="command"></label><input id="command" class="mono" type="text" maxlength="4094" data-setting="general.command_line" placeholder="--force-dark-mode" aria-describedby="command-help"><p id="command-help" data-i18n="commandHelp"></p></div>
         </div></section>
-        <section id="paths" class="settings-section" aria-labelledby="paths-title"><div class="section-heading"><span class="section-number">02</span><div><h2 id="paths-title" data-i18n="paths"></h2><p data-i18n="pathsHelp"></p></div></div><div class="panel">
+        <section id="paths" class="settings-section" aria-labelledby="paths-title"><div class="section-heading"><h2 id="paths-title" data-i18n="paths"></h2></div><div class="panel">
           <div class="field"><label for="data" data-i18n="data"></label><input id="data" class="mono" type="text" maxlength="258" data-setting="dir_setting.data" placeholder="%app%\..\Data" aria-describedby="data-help"><p id="data-help" data-i18n="dataHelp"></p></div>
           <div class="field"><label for="cache" data-i18n="cache"></label><input id="cache" class="mono" type="text" maxlength="258" data-setting="dir_setting.cache" placeholder="%app%\..\Cache" aria-describedby="cache-help"><p id="cache-help" data-i18n="cacheHelp"></p></div>
         </div></section>
-        <section id="hotkey" class="settings-section" aria-labelledby="hotkey-title"><div class="section-heading"><span class="section-number">03</span><div><h2 id="hotkey-title" data-i18n="hotkey"></h2><p data-i18n="hotkeyHelp"></p></div></div><div class="panel"><div class="field"><label for="boss" data-i18n="boss"></label><input id="boss" class="mono" type="text" maxlength="254" data-setting="hotkey.boss_key" placeholder="Ctrl+Alt+B" aria-describedby="boss-help"><p id="boss-help" data-i18n="bossHelp"></p></div></div></section>
-        <section id="appearance" class="settings-section" aria-labelledby="appearance-title"><div class="section-heading"><span class="section-number">04</span><div><h2 id="appearance-title" data-i18n="appearance"></h2><p data-i18n="appearanceHelp"></p></div></div><div class="panel appearance-grid">
+        <section id="hotkey" class="settings-section" aria-labelledby="hotkey-title"><div class="section-heading"><h2 id="hotkey-title" data-i18n="hotkey"></h2></div><div class="panel"><div class="field"><label for="boss" data-i18n="boss"></label><input id="boss" class="mono" type="text" maxlength="254" data-setting="hotkey.boss_key" placeholder="Ctrl+Alt+B" aria-describedby="boss-help"><p id="boss-help" data-i18n="bossHelp"></p></div></div></section>
+        <section id="appearance" class="settings-section" aria-labelledby="appearance-title"><div class="section-heading"><h2 id="appearance-title" data-i18n="appearance"></h2><p data-i18n="appearanceHelp"></p></div><div class="panel appearance-grid">
           <div class="field"><label for="language" data-i18n="language"></label><select id="language"><option value="zh-CN">简体中文</option><option value="en">English</option></select></div>
           <div class="field"><label for="theme" data-i18n="theme"></label><select id="theme"><option value="system" data-i18n="system"></option><option value="light" data-i18n="light"></option><option value="dark" data-i18n="dark"></option></select></div>
         </div></section>
-        <section id="about" class="settings-section" aria-labelledby="about-title"><div class="section-heading"><span class="section-number">05</span><div><h2 id="about-title" data-i18n="about"></h2><p data-i18n="aboutHelp"></p></div></div><div class="panel about-panel"><div class="about-brand">Vivaldi<span>++</span></div><p data-i18n="aboutText"></p><dl><dt data-i18n="version"></dt><dd id="version"></dd></dl><a class="project-link" href="https://github.com/ca-x/vivaldi_plus" target="_blank" rel="noopener noreferrer"><span data-i18n="project"></span><span aria-hidden="true"> ↗</span></a></div></section>
+        <section id="about" class="settings-section" aria-labelledby="about-title"><div class="section-heading"><h2 id="about-title" data-i18n="about"></h2></div><div class="panel about-panel"><div class="about-brand">Vivaldi<span>++</span></div><dl><dt data-i18n="version"></dt><dd id="version"></dd></dl><a class="project-link" href="https://github.com/ca-x/vivaldi_plus" target="_blank" rel="noopener noreferrer"><span data-i18n="project"></span><span aria-hidden="true"> ↗</span></a></div></section>
         <div class="save-area"><p class="restart-note"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg><span data-i18n="restart"></span></p><div id="status" role="status" aria-live="polite"></div><div class="actions"><span id="dirty-state"></span><div class="action-buttons"><button id="reset" class="button text-button" type="button" data-i18n="reset"></button><button id="download" class="button secondary" type="button" data-i18n="download"></button><button id="save" class="button primary" type="submit" data-i18n="save"></button></div></div></div>
       </form>
-      <footer data-i18n="footer"></footer>
     </main>
   </div>
 </body>

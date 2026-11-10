@@ -27,8 +27,8 @@ void VivaldiPlus()
     // Set custom AppUserModelID for Windows taskbar
     SetAppId();
 
-    InitializeWebSettings();
-    InitializeAboutPage(GetWebSettingsUrl());
+    if (CanIntegrateAboutPage())
+        InitializeWebSettings(InitializeAboutPage);
 
     // Apply portable mode registry patches
     MakeGreen();

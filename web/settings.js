@@ -17,7 +17,7 @@
   if (!Object.hasOwn(VivaldiMessages, language)) language = 'en';
   let theme = preference('theme', 'system');
   if (!['system', 'light', 'dark'].includes(theme)) theme = 'system';
-  const t = key => VivaldiMessages[language][key] || VivaldiMessages.en[key] || key;
+  const t = key => VivaldiMessages[language][key] ?? VivaldiMessages.en[key] ?? key;
   const values = () => Object.fromEntries(fields.map(field => [field.dataset.setting, field.type === 'checkbox' ? (field.checked ? '1' : '0') : field.value]));
   const dirty = () => Object.entries(values()).some(([key, value]) => value !== state.snapshot[key]);
   function markDirty() {
@@ -43,7 +43,7 @@
     $('language').value = language;
     if (bridge) {
       $('file-title').textContent = t('connectedTitle');
-      document.querySelector('[data-i18n="fileHelp"]').textContent = t('connectedHelp');
+      document.querySelector('[data-i18n="fileHelp"]').hidden = true;
       $('open').textContent = t('reload');
     }
     const version = new URLSearchParams(location.search).get('version');

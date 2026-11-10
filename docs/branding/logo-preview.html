@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vivaldi++ logo</title>
+  <link rel="stylesheet" href="../../web/logo.css">
+  <script src="../../web/logo.js" defer></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f3f4f6; color: #202126; font: 16px/1.5 "Segoe UI", system-ui, sans-serif; }
+    main { max-width: 900px; margin: auto; padding: 48px; }
+    .identity { margin-bottom: 40px; }
+    .identity a { display: inline-flex; align-items: center; gap: 24px; min-height: 44px; color: inherit; text-decoration: none; font-size: 42px; font-weight: 600; letter-spacing: -1.5px; }
+    .identity a:focus-visible { outline: 3px solid #bf2638; outline-offset: 8px; border-radius: 4px; }
+    .identity .brand-logo { width: 128px; height: 128px; flex-basis: 128px; }
+    .sheet { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #d7d9df; border-radius: 12px; overflow: hidden; }
+    .panel { min-height: 270px; padding: 32px; background: #fff; }
+    .panel.dark { background: #1b1c20; color: #f3f3f5; }
+    .panel h2 { margin: 0 0 28px; font-size: 14px; font-weight: 500; }
+    .sizes { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+    .size { display: grid; justify-items: center; gap: 18px; font: 12px Consolas, monospace; }
+    .size img { display: block; }
+    .export { display: flex; align-items: center; justify-content: center; margin-top: 32px; min-height: 240px; background: #fff; border: 1px solid #d7d9df; border-radius: 12px; }
+    .export img { width: 128px; height: 128px; }
+    @media (max-width: 700px) { main { padding: 24px; } .sheet { grid-template-columns: 1fr; } .identity a { font-size: 30px; gap: 16px; } .identity .brand-logo { width: 96px; height: 96px; flex-basis: 96px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="identity"><a id="interactive-logo" href="#exports" aria-label="Vivaldi++"><span class="brand-logo" aria-hidden="true"><img class="logo-image" src="../../web/logo.png" width="128" height="128" alt=""></span><span>Vivaldi++</span></a></div>
+    <div class="sheet">
+      <section class="panel"><h2>Light</h2><div class="sizes"><div class="size"><img src="../../web/logo.png" width="16" height="16" alt=""><span>16</span></div><div class="size"><img src="../../web/logo.png" width="32" height="32" alt=""><span>32</span></div><div class="size"><img src="../../web/logo.png" width="64" height="64" alt=""><span>64</span></div><div class="size"><img src="../../web/logo.png" width="128" height="128" alt=""><span>128</span></div></div></section>
+      <section class="panel dark"><h2>Dark</h2><div class="sizes"><div class="size"><img src="../../web/logo.png" width="16" height="16" alt=""><span>16</span></div><div class="size"><img src="../../web/logo.png" width="32" height="32" alt=""><span>32</span></div><div class="size"><img src="../../web/logo.png" width="64" height="64" alt=""><span>64</span></div><div class="size"><img src="../../web/logo.png" width="128" height="128" alt=""><span>128</span></div></div></section>
+    </div>
+    <div id="exports" class="export"><img src="../../web/logo.png" alt="Vivaldi++"></div>
+  </main>
+</body>
+</html>

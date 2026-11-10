@@ -11,12 +11,15 @@ Applied ui-ux-pro-max: `search.py "browser settings productivity utility minimal
 - Dark: canvas #17181c, surface #202126, text #f3f3f5, secondary #b4b5bd, border #45464f, accent #ff8794, soft-accent #3b242a. Primary button uses #bf2638 with white text in both themes.
 - Type scale: 12/14/16/20/30 px; body line height 1.6; headings 600–700.
 - Spacing: 4/8/12/16/24/32/48 px; radii 8/12/16 px.
-- Primitives: button (primary/secondary), text field, labelled native switch checkbox, section, note, badge, nav item. All interactive targets at least 44 px high. Visible 3 px focus ring.
+- Primitives: button (primary/secondary), text field, labelled native switch checkbox, section, note, nav item. All interactive targets at least 44 px high. Visible 3 px focus ring.
 - Motion: color/background/border transitions 160 ms; remove transitions and smooth scrolling under reduced-motion.
+- The product logo may occupy an independent 44 px mark beside the existing product name; its assets and interaction are owned separately from this cleanup.
 
 ## Layout
 
-Desktop has a 240 px sidebar, 64 px header, and max 920 px reading column. Sidebar provides general/paths/hotkey/appearance/about anchor links. Configuration sections have compact numbered headings, helper text and consistently aligned controls. Below 800 px the sidebar becomes a horizontal navigation; below 540 px every row and action group wraps without horizontal scroll. Footer save controls remain in document flow so enlarged text and mobile keyboards never cover fields.
+Desktop has a 240 px sidebar, 64 px header, and max 920 px reading column. Sidebar provides general/paths/hotkey/appearance/about anchor links. Sections use plain headings and concise field-specific instructions. No decorative numbering, promotional slogans, offline/account badges, duplicate configuration labels, or architecture descriptions appear in the UI. The connected configuration panel shows its actual file path and reload action without extra explanation. Below 800 px the sidebar becomes a horizontal navigation; below 540 px every row and action group wraps without horizontal scroll. Save controls remain in document flow so enlarged text and mobile keyboards never cover fields.
+
+The cleanup follows `docs/ui-cleanup-plan.md` and ai-slop-cleaner: retain behavior tests, delete redundant content and translations, consolidate checkbox selectors, then verify localization, control IDs, and narrow layout behavior. Theme tokens and the native configuration API are unchanged.
 
 ## Language and theme
 

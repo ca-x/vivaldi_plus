@@ -25,6 +25,7 @@ struct Response {
 using Handler = Response (*)(const Request&);
 
 bool ParseHead(const std::string& head, Request& request, size_t& bodyLength);
+// port == 0 selects the first free settings port; a nonzero port binds only it.
 bool Start(Handler handler, unsigned short& port);
 
 } // namespace web_http

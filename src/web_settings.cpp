@@ -22,9 +22,19 @@ void DebugLog(const wchar_t* format, ...);
 namespace {
 
 std::string token, origin, authority;
-std::wstring configPath, settingsUrl;
+std::wstring configPath;
 std::atomic<bool> ready{false};
+std::atomic<bool> initialized{false};
+struct SharedService {
+    volatile LONG published;
+    unsigned short port;
+    unsigned char token[32];
+};
+std::atomic<SharedService*> sharedService{nullptr};
 HANDLE installationMutex = nullptr;
+HANDLE serviceMapping = nullptr;
+HANDLE initialAttempt = nullptr;
+WebSettingsReady onServiceReady = nullptr;
 
 struct File {
     HANDLE handle = INVALID_HANDLE_VALUE;
@@ -225,7 +235,10 @@ web_http::Response Handle(const web_http::Request& request)
         {"/settings.css", IDR_WEB_SETTINGS_CSS, "text/css; charset=utf-8"},
         {"/ini.js", IDR_WEB_INI_JS, "text/javascript; charset=utf-8"},
         {"/i18n.js", IDR_WEB_I18N_JS, "text/javascript; charset=utf-8"},
-        {"/settings.js", IDR_WEB_SETTINGS_JS, "text/javascript; charset=utf-8"}
+        {"/settings.js", IDR_WEB_SETTINGS_JS, "text/javascript; charset=utf-8"},
+        {"/logo.png", IDR_WEB_LOGO_PNG, "image/png"},
+        {"/logo.css", IDR_WEB_LOGO_CSS, "text/css; charset=utf-8"},
+        {"/logo.js", IDR_WEB_LOGO_JS, "text/javascript; charset=utf-8"}
     };
     for (const auto& asset : assets) {
         if (path != asset.path) continue;
@@ -245,39 +258,113 @@ web_http::Response Handle(const web_http::Request& request)
     return Error(404, "Not found");
 }
 
+bool BecomeOwner()
+{
+    auto state = sharedService.load(std::memory_order_acquire);
+    const bool published = InterlockedCompareExchange(&state->published, 0, 0) == 1;
+    unsigned char random[32] = {};
+    unsigned short port = published ? state->port : 0;
+    if (published) std::memcpy(random, state->token, sizeof(random));
+    else if (BCryptGenRandom(nullptr, random, sizeof(random), BCRYPT_USE_SYSTEM_PREFERRED_RNG) < 0) return false;
+    constexpr char hex[] = "0123456789abcdef";
+    token.clear();
+    for (unsigned char c : random) { token += hex[c >> 4]; token += hex[c & 15]; }
+    // An abandoned owner may still have sockets being torn down by the kernel.
+    // A published port is never replaced with a different one during takeover.
+    bool bound = false;
+    for (int attempt = 0; attempt < (published ? 40 : 1); attempt++) {
+        if (web_http::Start(Handle, port)) { bound = true; break; }
+        Sleep(50);
+    }
+    if (!bound) return false;
+    authority = "127.0.0.1:" + std::to_string(port);
+    origin = "http://" + authority;
+    if (!published) {
+        state->port = port;
+        std::memcpy(state->token, random, sizeof(random));
+        InterlockedExchange(&state->published, 1);
+    }
+    ready.store(true, std::memory_order_release);
+    if (onServiceReady) onServiceReady(GetWebSettingsUrl());
+    return true;
+}
+
+DWORD WINAPI GuardService(void*)
+{
+    bool startup = true;
+    for (;;) {
+        const DWORD result = WaitForSingleObject(installationMutex, startup ? 0 : INFINITE);
+        if (result == WAIT_TIMEOUT) {
+            SetEvent(initialAttempt);
+            startup = false;
+            continue;
+        }
+        if (result != WAIT_OBJECT_0 && result != WAIT_ABANDONED) {
+            SetEvent(initialAttempt);
+            DebugLog(L"Web settings service lease could not be acquired");
+            return 0;
+        }
+        const bool owner = BecomeOwner();
+        SetEvent(initialAttempt);
+        startup = false;
+        if (owner) {
+            // Mutex ownership belongs to this thread, which must outlive the HTTP
+            // worker. Process exit abandons the lease for another browser instance.
+            Sleep(INFINITE);
+            return 0;
+        }
+        ReleaseMutex(installationMutex);
+        DebugLog(L"Web settings could not bind its shared loopback port; retrying");
+        Sleep(1000);
+    }
+}
+
 } // namespace
 
-void InitializeWebSettings()
+void InitializeWebSettings(WebSettingsReady on_ready)
 {
-    if (installationMutex) return;
+    if (initialized.exchange(true, std::memory_order_acq_rel)) return;
     const auto app = GetAppDir();
     auto canonicalApp = app;
     if (!canonicalApp.empty()) CharLowerBuffW(canonicalApp.data(), static_cast<DWORD>(canonicalApp.size()));
     const auto utf8 = Utf8(canonicalApp);
     const auto hash = Hex(Hash(utf8));
     const auto name = L"Local\\VivaldiPlusSettings-" + std::wstring(hash.begin(), hash.end());
-    SetLastError(ERROR_SUCCESS);
     installationMutex = CreateMutexW(nullptr, FALSE, name.c_str());
-    const DWORD mutexError = GetLastError();
     if (!installationMutex) return;
-    const auto releaseMutex = [] { CloseHandle(installationMutex); installationMutex = nullptr; };
-    if (mutexError == ERROR_ALREADY_EXISTS) { releaseMutex(); return; }
-    unsigned char random[32] = {};
-    if (BCryptGenRandom(nullptr, random, sizeof(random), BCRYPT_USE_SYSTEM_PREFERRED_RNG) < 0) { releaseMutex(); DebugLog(L"Web settings random token generation failed"); return; }
-    constexpr char hex[] = "0123456789abcdef";
-    token.clear();
-    for (unsigned char c : random) { token += hex[c >> 4]; token += hex[c & 15]; }
+    const auto mappingName = name + L"-State-v1";
+    serviceMapping = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(SharedService), mappingName.c_str());
+    auto state = serviceMapping ? static_cast<SharedService*>(MapViewOfFile(serviceMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SharedService))) : nullptr;
+    initialAttempt = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    if (!state || !initialAttempt) {
+        if (state) UnmapViewOfFile(state);
+        if (serviceMapping) CloseHandle(serviceMapping);
+        if (initialAttempt) CloseHandle(initialAttempt);
+        CloseHandle(installationMutex);
+        installationMutex = serviceMapping = initialAttempt = nullptr;
+        return;
+    }
     configPath = app + L"\\config.ini";
-    unsigned short port = 0;
-    if (!web_http::Start(Handle, port)) { releaseMutex(); DebugLog(L"Web settings could not bind a loopback port"); return; }
-    authority = "127.0.0.1:" + std::to_string(port);
-    origin = "http://" + authority;
-    const auto url = origin + "/settings.html";
-    settingsUrl.assign(url.begin(), url.end());
-    ready.store(true, std::memory_order_release);
+    onServiceReady = on_ready;
+    sharedService.store(state, std::memory_order_release);
+    HANDLE thread = CreateThread(nullptr, 0, GuardService, nullptr, 0, nullptr);
+    if (!thread) {
+        // Keep the published view mapped for any concurrent URL getter. It can
+        // still describe a service owned by another process of this installation.
+        CloseHandle(initialAttempt);
+        CloseHandle(installationMutex);
+        installationMutex = initialAttempt = nullptr;
+        return;
+    }
+    CloseHandle(thread);
+    // The first owner finishes its about-page callback before browser entry. A
+    // standby process signals immediately and only waits for a future takeover.
+    WaitForSingleObject(initialAttempt, INFINITE);
 }
 
 std::wstring GetWebSettingsUrl()
 {
-    return settingsUrl;
+    auto state = sharedService.load(std::memory_order_acquire);
+    if (!state || InterlockedCompareExchange(&state->published, 0, 0) != 1) return {};
+    return L"http://127.0.0.1:" + std::to_wstring(state->port) + L"/settings.html";
 }

@@ -60,3 +60,18 @@ test('every static label and status key is available in both languages', () => {
     for (const language of ['en', 'zh-CN']) assert.ok(messages[language][match[1]], `${language}: ${match[1]}`);
   }
 });
+test('settings retain useful controls without promotional copy or decorative numbering', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../settings.html'), 'utf8');
+  const context = {};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../i18n.js'), 'utf8'), context);
+  const removed = ['subtitle', 'local', 'offline', 'eyebrow', 'intro', 'generalHelp', 'pathsHelp', 'hotkeyHelp', 'aboutHelp', 'aboutText', 'defaultsBadge', 'footer', 'connectedHelp'];
+  for (const messages of Object.values(context.VivaldiMessages)) {
+    for (const key of removed) assert.equal(Object.hasOwn(messages, key), false, `Unused translation ${key}`);
+    assert.equal(messages.ready, '');
+  }
+  assert.doesNotMatch(html, /sidebar-bottom|sidebar-caption|section-number|class="eyebrow"|class="pill"|<footer/);
+  assert.doesNotMatch(html, /aria-hidden="true">0[1-5]</);
+  for (const id of ['win32k', 'debug', 'features', 'command', 'data', 'cache', 'boss', 'language', 'theme', 'file-name', 'status']) {
+    assert.match(html, new RegExp(`id="${id}"`), `Required control ${id}`);
+  }
+});

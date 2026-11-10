@@ -3,3 +3,6 @@
 203 RCDATA "web/ini.js"
 204 RCDATA "web/i18n.js"
 205 RCDATA "web/settings.js"
+209 RCDATA "web/logo.png"
+210 RCDATA "web/logo.css"
+211 RCDATA "web/logo.js"

@@ -3,7 +3,8 @@
 
 #include <string>
 
-void InitializeWebSettings();
+using WebSettingsReady = void (*)(const std::wstring&);
+void InitializeWebSettings(WebSettingsReady on_ready = nullptr);
 std::wstring GetWebSettingsUrl();
 
 #endif
