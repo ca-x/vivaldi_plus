@@ -205,6 +205,7 @@
   addEventListener('beforeunload', event => { if (dirty() || state.busy) { event.preventDefault(); event.returnValue = ''; } });
   const navigation = [...document.querySelectorAll('.sidebar nav a')];
   const sections = navigation.map(link => $(link.hash.slice(1)));
+  let navigationTarget = null;
   function selectSection(id) {
     navigation.forEach(link => {
       if (link.hash === `#${id}`) link.setAttribute('aria-current', 'location');
@@ -214,6 +215,7 @@
   let navigationFrame = 0;
   function trackSection() {
     navigationFrame = 0;
+    if (navigationTarget) return;
     let selected = sections[0];
     for (const section of sections) {
       if (section.getBoundingClientRect().top <= Math.min(innerHeight * 0.25, 180)) selected = section;
@@ -224,9 +226,21 @@
   function scheduleNavigation() {
     if (!navigationFrame) navigationFrame = requestAnimationFrame(trackSection);
   }
-  navigation.forEach(link => link.addEventListener('click', () => selectSection(link.hash.slice(1))));
+  navigation.forEach(link => link.addEventListener('click', () => {
+    navigationTarget = link.hash.slice(1); selectSection(navigationTarget);
+  }));
   addEventListener('hashchange', () => {
-    if (sections.some(section => section.id === location.hash.slice(1))) selectSection(location.hash.slice(1));
+    if (sections.some(section => section.id === location.hash.slice(1))) {
+      navigationTarget = location.hash.slice(1); selectSection(navigationTarget);
+    } else if (location.hash === '#main') { navigationTarget = null; selectSection(sections[0].id); }
+  });
+  addEventListener('scrollend', () => { if (navigationTarget) { cancelAnimationFrame(navigationFrame); navigationFrame = 0; navigationTarget = null; } });
+  const manualScroll = () => { navigationTarget = null; scheduleNavigation(); };
+  addEventListener('wheel', manualScroll, { passive: true });
+  addEventListener('touchmove', manualScroll, { passive: true });
+  addEventListener('pointerdown', event => { if (!event.target.closest('.sidebar nav')) navigationTarget = null; });
+  addEventListener('keydown', event => {
+    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key) && !event.target.closest('input,textarea,select')) manualScroll();
   });
   addEventListener('scroll', scheduleNavigation, { passive: true });
   addEventListener('resize', scheduleNavigation);
