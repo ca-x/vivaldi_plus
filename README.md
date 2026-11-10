@@ -34,11 +34,14 @@
 没有配置文件时按默认值显示，第一次保存时创建 UTF-16LE 文件以支持 Windows INI 的中文路径。
 更改数据目录不会移动现有数据。**保存后完全退出并重新启动 Vivaldi 才会生效。**
 
-首次运行以及 Vivaldi 更新后，DLL 会释放两个关于页集成工具至 `App/vivaldi-plus-tools`，
+首次运行以及 Vivaldi 更新后，DLL 会释放关于页集成工具至 `App/vivaldi-plus-tools`，
 并在浏览器入口运行前通过 Windows PowerShell 更新关于页模板；网页本身不释放为文件。
 原始资源备份为版本目录内的 `resources.pak.vivaldi-plus-original`。只修改能够明确识别的模板，
 不支持的版本、只读目录或策略禁止 PowerShell 时保留原资源，详情见 `vivaldi-plus-tools/integration.log`。
 此时仍可使用上述本地地址；服务只在浏览器运行期间可用。
+
+1.6.0.1 同时支持 Vivaldi 8.2 的新版 `vivaldi:about` 页面：在其 React 界面加入 Vivaldi++ 卡片，
+使用原生新标签页导航进入设置；保留 `bundle.js.vivaldi-plus-original` 以便恢复。
 
 恢复原始关于页（先退出浏览器）：
 
@@ -304,9 +307,10 @@ It loads the adjacent `config.ini` automatically. Chinese/English and light/dark
 Saving retains unknown INI entries and comments, detects external edits, and writes UTF-16LE atomically.
 Fully exit and restart Vivaldi to apply configuration changes. Changing directory settings does not move data.
 
-On first launch or browser upgrade, two embedded integration tools are extracted to `vivaldi-plus-tools`.
+On first launch or browser upgrade, embedded integration tools are extracted to `vivaldi-plus-tools`.
 Windows PowerShell patches the identified about-page template before the browser entry point runs,
 retaining the original `resources.pak.vivaldi-plus-original` next to the version's resource pack.
+Vivaldi 8.2's React about page is also integrated, with a separate `bundle.js.vivaldi-plus-original` backup.
 Unsupported resources or write/policy failures leave the original intact; see `vivaldi-plus-tools/integration.log`.
 The settings service remains accessible directly while the browser is running.
 It binds only to `127.0.0.1` and protects its fixed-path configuration API with host, token and origin checks.

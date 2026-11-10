@@ -104,4 +104,43 @@ public static class VivaldiPlusAboutPage
         Validate(result);
         return result;
     }
+
+    static string JavascriptString(string text)
+    {
+        var result = new StringBuilder("\"");
+        foreach (char c in text)
+        {
+            if (c == '"' || c == '\\') result.Append('\\').Append(c);
+            else if (c < 32 || c == '\u2028' || c == '\u2029') result.Append("\\u").Append(((int)c).ToString("x4"));
+            else result.Append(c);
+        }
+        return result.Append('"').ToString();
+    }
+
+    public static byte[] PatchVivaldiUi(byte[] bytes, string settingsUrl, string version)
+    {
+        var uri = new Uri(settingsUrl, UriKind.Absolute);
+        if (uri.Scheme != "http" || uri.Host != "127.0.0.1" || uri.AbsolutePath != "/settings.html" || uri.Port < 16877 || uri.Port > 16887)
+            throw new ArgumentException("Settings must use the Vivaldi++ loopback endpoint");
+        string source = Utf8.GetString(bytes);
+        source = Regex.Replace(source, @"/\* vivaldi-plus-ui:start \*/[\s\S]*?/\* vivaldi-plus-ui:end \*/", "");
+        var pattern = new Regex(@"\(0,([A-Za-z_$][\w$]*)\.jsxs\)\(""div"",\{className:""about-page-content"",children:\[");
+        var matches = pattern.Matches(source);
+        if (matches.Count != 1) throw new InvalidDataException("Expected one Vivaldi about-page component; refusing to modify an unsupported UI bundle");
+        var navigation = Regex.Matches(source, @"onClick:\(\)=>([A-Za-z_$][\w$]*)\(""https://vivaldi\.com/bugreport/""\)");
+        if (navigation.Count != 1 || navigation[0].Index >= matches[0].Index || matches[0].Index - navigation[0].Index > 25000)
+            throw new InvalidDataException("Native about-page navigation callback could not be identified");
+        string navigate = navigation[0].Groups[1].Value;
+        string runtime = matches[0].Groups[1].Value;
+        string jsx = "(0," + runtime + ".jsx)";
+        string jsxs = "(0," + runtime + ".jsxs)";
+        string url = JavascriptString(uri.AbsoluteUri + (uri.Query.Length == 0 ? "?" : "&") + "version=" + Uri.EscapeDataString(version));
+        string card = "/* vivaldi-plus-ui:start */" + jsxs + "(\"section\",{id:\"vivaldi-plus-about\",className:\"card helpful-links-card\",children:["
+            + jsx + "(\"div\",{className:\"card-header\",children:" + jsx + "(\"h3\",{children:\"Vivaldi++\"})}),"
+            + jsxs + "(\"div\",{className:\"card-content\",children:[" + jsx + "(\"p\",{children:" + JavascriptString(version) + "}),"
+            + jsx + "(\"a\",{id:\"vivaldi-plus-settings\",className:\"link-item\",href:" + url
+            + ",target:\"_blank\",rel:\"noopener\",onClick:e=>{e.preventDefault();" + navigate + "(" + url + ")},children:\"Settings / \\u8bbe\\u7f6e\"}),"
+            + jsx + "(\"a\",{className:\"link-item\",href:\"https://github.com/ca-x/vivaldi_plus\",target:\"_blank\",rel:\"noopener\",children:\"GitHub\"})]})]}),/* vivaldi-plus-ui:end */";
+        return Utf8.GetBytes(pattern.Replace(source, match => match.Value + card));
+    }
 }

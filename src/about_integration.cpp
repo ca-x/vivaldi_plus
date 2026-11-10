@@ -76,7 +76,8 @@ void InitializeAboutPage(const std::wstring& settings_url)
     GetPrivateProfileStringW(L"about", L"attempt", L"", previous, 1024, state.c_str());
     if (fingerprint == previous) return;
     const auto script = tools + L"\\Install-AboutPage.ps1";
-    if (!ExtractTool(206, script) || !ExtractTool(207, tools + L"\\AboutPage.cs")) {
+    if (!ExtractTool(206, script) || !ExtractTool(207, tools + L"\\AboutPage.cs") ||
+        !ExtractTool(208, tools + L"\\Install-VivaldiUI.ps1")) {
         DebugLog(L"Could not extract about-page integration tools");
         return;
     }

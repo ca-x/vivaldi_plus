@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$AppDir,
     [Parameter(Mandatory=$true)][string]$SettingsUrl,
-    [string]$Version = '1.6.0.0',
+    [string]$Version = '1.6.0.1',
     [switch]$Restore,
     [switch]$Startup
 )
@@ -25,6 +25,10 @@ $directories = @(Get-ChildItem -LiteralPath $app -Directory | Where-Object {
 })
 if (-not $directories.Count) { throw 'No supported Vivaldi version directory found.' }
 $selected = $directories | Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
+$bundle = Join-Path $selected.FullName 'resources/vivaldi/bundle.js'
+if (Test-Path -LiteralPath $bundle) {
+    & (Join-Path $PSScriptRoot 'Install-VivaldiUI.ps1') -BundlePath $bundle -SettingsUrl $SettingsUrl -Version $Version -Restore:$Restore
+}
 $pakPath = Join-Path $selected.FullName 'resources.pak'
 $backup = $pakPath + '.vivaldi-plus-original'
 $receipt = $pakPath + '.vivaldi-plus.json'
