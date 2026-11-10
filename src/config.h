@@ -16,6 +16,7 @@ private:
     std::wstring config_path_;
     bool win32k_enabled_;
     bool debug_log_enabled_;
+    bool webui_enabled_ = false;
     std::wstring command_line_;
     std::wstring disable_features_ = L"WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading";
     bool has_custom_disable_features_;
@@ -38,6 +39,8 @@ private:
         {
             return;  // Use defaults if config doesn't exist
         }
+
+        webui_enabled_ = (GetPrivateProfileIntW(L"general", L"webui", 0, config_path_.c_str()) != 0);
 
         // Read win32k setting from [general] section
         // 0 = disabled (default, safer, better for video streaming)
@@ -93,6 +96,11 @@ public:
     bool IsDebugLogEnabled() const
     {
         return debug_log_enabled_;
+    }
+
+    bool IsWebUiEnabled() const
+    {
+        return webui_enabled_;
     }
 
     // Returns additional command line arguments from config

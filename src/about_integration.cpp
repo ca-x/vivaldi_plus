@@ -1,5 +1,6 @@
 #include "about_integration.h"
 #include "about_patch.h"
+#include "chrome_about.h"
 #include "utils.h"
 #include "version.h"
 #include <bcrypt.h>
@@ -33,8 +34,12 @@ std::wstring LatestBundle() {
             version[i] = static_cast<unsigned long>(number);
             if (i < 3) ++part;
         }
-        const auto path = app + L"\\" + entry.cFileName + L"\\resources\\vivaldi\\bundle.js";
-        const auto attributes = GetFileAttributesW(path.c_str());
+        auto path = app + L"\\" + entry.cFileName + L"\\resources\\vivaldi\\bundle.js";
+        auto attributes = GetFileAttributesW(path.c_str());
+        if (attributes == INVALID_FILE_ATTRIBUTES && GetFileAttributesW((app + L"\\Chrome.exe").c_str()) != INVALID_FILE_ATTRIBUTES) {
+            path = app + L"\\" + entry.cFileName + L"\\resources.pak";
+            attributes = GetFileAttributesW(path.c_str());
+        }
         if (valid && version > latest && attributes != INVALID_FILE_ATTRIBUTES && !(attributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT))) {
             latest = version; result = path;
         }
@@ -87,6 +92,12 @@ bool WriteCandidate(const std::wstring& path, std::string_view bytes) {
     if (!ok) DeleteFileW(path.c_str());
     return ok;
 }
+
+bool MakeCandidate(const std::wstring& path, std::string_view source, std::string_view url,
+    bool enabled, std::string& candidate, std::string& error) {
+    if (std::wstring_view(path).ends_with(L".pak")) return PatchChromeAbout(source, url, RELEASE_VER_STR, enabled, candidate, error);
+    return enabled ? PatchAboutUi(source, url, RELEASE_VER_STR, candidate, error) : RemoveAboutUi(source, candidate, error);
+}
 }
 
 bool CanIntegrateAboutPage() {
@@ -95,9 +106,10 @@ bool CanIntegrateAboutPage() {
     if (bundle.empty()) return false;
     std::string source, candidate, error;
     BY_HANDLE_FILE_INFORMATION info = {};
-    if (!ReadBundle(bundle, source, info) || !PatchAboutUi(source,
-        "http://127.0.0.1:16877/settings.html", RELEASE_VER_STR, candidate, error)) return false;
-    if (source.find("/* vivaldi-plus-ui:start */") != std::string::npos) return true;
+    if (!ReadBundle(bundle, source, info) || !MakeCandidate(bundle, source,
+        "http://127.0.0.1:16877/settings.html", true, candidate, error)) return false;
+    if (candidate == source || source.find("/* vivaldi-plus-ui:start */") != std::string::npos ||
+        source.find("vivaldi-plus-chrome-entry") != std::string::npos) return true;
     if (info.dwFileAttributes & FILE_ATTRIBUTE_READONLY) return false;
     HANDLE file = CreateFileW(bundle.c_str(), GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -106,8 +118,8 @@ bool CanIntegrateAboutPage() {
     return true;
 }
 
-void InitializeAboutPage(const std::wstring& settings_url) {
-    if (settings_url.empty() || IntegrationDisabled()) return;
+static void UpdateAboutPage(const std::wstring& settings_url, bool enabled) {
+    if (enabled && (settings_url.empty() || IntegrationDisabled())) return;
     const auto bundle = LatestBundle();
     if (bundle.empty()) return;
     std::string source, candidate, error;
@@ -115,7 +127,7 @@ void InitializeAboutPage(const std::wstring& settings_url) {
     if (!ReadBundle(bundle, source, initial)) {
         DebugLog(L"About-page bundle unavailable; integration skipped"); return;
     }
-    if (!PatchAboutUi(source, Utf8(settings_url), RELEASE_VER_STR, candidate, error)) {
+    if (!MakeCandidate(bundle, source, Utf8(settings_url), enabled, candidate, error)) {
         DebugLog(L"About-page UI unsupported; integration skipped: %hs", error.c_str()); return;
     }
     if (candidate == source) return; // Repeated startup does not touch any files.
@@ -136,3 +148,6 @@ void InitializeAboutPage(const std::wstring& settings_url) {
         DeleteFileW(temp.c_str()); DebugLog(L"About-page UI replacement skipped (%lu)", code);
     }
 }
+
+void InitializeAboutPage(const std::wstring& settings_url) { UpdateAboutPage(settings_url, true); }
+void RemoveAboutPageEntry() { UpdateAboutPage({}, false); }

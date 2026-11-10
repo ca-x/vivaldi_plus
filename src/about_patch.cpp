@@ -57,12 +57,9 @@ bool UniqueMatch(const std::string& source, const std::regex& pattern, std::smat
 }
 }
 
-bool PatchAboutUi(std::string_view input, std::string_view settings_url,
-    std::string_view version, std::string& output, std::string& error) {
+bool RemoveAboutUi(std::string_view input, std::string& output, std::string& error) {
     const auto fail = [&](const char* message) { error = message; return false; };
-    if (!ValidEndpoint(settings_url)) return fail("Settings URL must use the Vivaldi++ loopback endpoint");
-    if (version.empty() || version.size() > 128 || input.size() > 64 * 1024 * 1024 || input.find('\0') != std::string_view::npos)
-        return fail("Invalid version or UI bundle size/content");
+    if (input.size() > 64 * 1024 * 1024 || input.find('\0') != std::string_view::npos) return fail("Invalid UI bundle size/content");
     std::string source(input);
     const auto marker = source.find(begin_marker);
     if (marker != std::string::npos) {
@@ -72,6 +69,16 @@ bool PatchAboutUi(std::string_view input, std::string_view settings_url,
             return fail("Malformed or repeated Vivaldi++ integration markers");
         source.erase(marker, end + end_marker.size() - marker);
     } else if (source.find(end_marker) != std::string::npos) return fail("Unmatched integration marker");
+    output = std::move(source); error.clear(); return true;
+}
+
+bool PatchAboutUi(std::string_view input, std::string_view settings_url,
+    std::string_view version, std::string& output, std::string& error) {
+    const auto fail = [&](const char* message) { error = message; return false; };
+    if (!ValidEndpoint(settings_url)) return fail("Settings URL must use the Vivaldi++ loopback endpoint");
+    if (version.empty() || version.size() > 128) return fail("Invalid version");
+    std::string source;
+    if (!RemoveAboutUi(input, source, error)) return false;
 
     static const std::regex card_pattern(R"rx(\(0,([A-Za-z_$][A-Za-z0-9_$]*)\.jsxs\)\("div",\{className:"card system-build-card",children:\[([A-Za-z_$][A-Za-z0-9_$]*),([A-Za-z_$][A-Za-z0-9_$]*)\]\}\))rx");
     std::smatch card;

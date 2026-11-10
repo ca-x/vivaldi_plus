@@ -3,6 +3,13 @@
 ; All settings are optional - defaults will be used if not specified
 
 [general]
+; Embedded web settings UI (opt-in)
+; 0 (DEFAULT): do not start a local HTTP service; remove our previous about-page entry
+; 1: enable the settings link on supported browsers; HTML, logo and API remain in the DLL
+; After changing this value, completely exit ALL browser instances and restart
+; Disabling removes only our own entry and preserves other browser resources
+webui=0
+
 ; Win32k System Call Policy
 ; Controls whether to forcibly enable win32k system calls in renderer processes
 ;

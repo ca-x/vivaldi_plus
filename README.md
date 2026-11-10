@@ -24,9 +24,22 @@
 
 ### 自定义配置
 
-#### 网页设置（1.6 起）
+#### 网页设置（默认关闭）
+
+网页设置为可选功能。没有 `config.ini`，或旧配置没有 `webui`，都按 `webui=0` 处理：
+不启动本地服务，不显示关于页信息；以前启用过的自有入口会被移除。原有便携化功能继续运行。
+
+要开启，在 DLL 同目录的 `config.ini` 中加入：
+
+```ini
+[general]
+webui=1
+```
+
+完全退出**所有**浏览器实例后重新启动。设置回 `0` 可关闭。
 
 打开 `vivaldi:about`，在“系统与构建”中点击 **Vivaldi++ → 设置**，入口跟随浏览器语言。
+Chrome 对应入口在 `chrome://settings/help`（设置 → 关于 Chrome）。
 网页、Logo、样式、脚本全部嵌入 `version.dll`；DLL 在主浏览器进程中启动本地服务，
 通常位于 `http://127.0.0.1:16877/settings.html`（端口占用时尝试 16878–16887）。
 网页会自动加载 DLL 同目录的 `config.ini`，支持中文/英文、浅色/深色/跟随系统，
@@ -36,12 +49,19 @@
 没有配置文件时按默认值显示，第一次保存时创建 UTF-16LE 文件以支持 Windows INI 的中文路径。
 更改数据目录不会移动现有数据。**保存后完全退出并重新启动 Vivaldi 才会生效。**
 
-从 1.6.0.2 起，关于页入口由 C++ 直接集成，仅修改 Vivaldi 界面中的一处入口，
-不再释放或执行 PowerShell/C#，不修改 Chromium 的 `resources.pak`。
+关于页入口由 C++ 直接集成：Vivaldi 只修改其界面的一处入口；Chrome 只修改资源包内关于页模板。
+不释放或执行 PowerShell/C#。关闭时仅删除自己的入口，保留其他资源。
 网页和 Logo 直接从 DLL 资源提供，不释放到安装目录。
 只在能识别且可写时更新入口；不创建备份或安装记录，重复启动且入口相同时不会重写文件。
 遇到不支持的界面版本或外部修改时保留原文件，不强行修改。
 创建 `App/vivaldi-plus-about-disabled` 可禁止自动集成，删除该标记后恢复。
+
+#### Chrome 兼容
+
+提供 `vivaldi-windows-*.zip` 和 `chrome-windows-*.zip` 两套包，共用原生 DLL，按实际浏览器识别入口。
+将 DLL 放在 `vivaldi.exe` 或 `Chrome.exe` 同目录，统一使用本项目的 `config.ini`。
+Chrome 支持便携数据/缓存目录、启动参数、老板键，以及显式开启后的网页设置。
+其他 Chrome++ 项目的 `chrome++.ini` 和标签增强选项不会自动迁移；不要混用两套 DLL。
 
 本地服务只监听 IPv4 回环地址。配置接口固定指向本安装的 `config.ini`，
 校验 Host、会话令牌、写入来源，不对局域网提供访问，也不支持任意文件读取或执行命令。
@@ -60,6 +80,9 @@
 **完整配置示例：**
 ```ini
 [general]
+# 网页设置默认关闭；没有此项也按 0 处理
+webui=0
+
 # Win32k 系统调用策略
 # win32k=0 (推荐) - 保持默认沙箱，确保 GPU 硬件加速和视频流性能
 # win32k=1 (兼容) - 仅当 Chrome 启动崩溃时使用，可能影响视频播放质量
@@ -292,22 +315,32 @@ xmake
 
 ### Configuration
 
-#### Web settings (1.6 and later)
+#### Web settings (off by default)
+
+Missing configuration or a missing `[general] webui` key is treated as `webui=0`.
+The portable features continue to work, with no settings service or about-page information.
+To enable the optional UI, set `webui=1` in `[general]` inside the adjacent `config.ini`,
+then completely exit **all** browser instances and restart. Set it back to `0` to disable the service and remove its own entry.
 
 Open `vivaldi:about` and follow **Vivaldi++ → Settings** under System and Build. The entry follows the browser language.
+For Chrome, open `chrome://settings/help` (Settings → About Chrome).
 All HTML, logo assets, CSS and JavaScript are embedded in `version.dll` and served directly from DLL resources.
 The loopback service uses `http://127.0.0.1:16877/settings.html`, with ports 16878–16887 as fallbacks.
 It loads the adjacent `config.ini` automatically. Chinese/English and light/dark/system themes are supported.
 Saving retains unknown INI entries and comments, detects external edits, and writes UTF-16LE atomically.
 Fully exit and restart Vivaldi to apply configuration changes. Changing directory settings does not move data.
 
-Version 1.6.0.2 integrates the single about entry directly in C++, without extracting or executing installer scripts.
-It leaves `resources.pak` alone and creates no backups or installation records. An unchanged entry is not rewritten.
+The single about entry is integrated directly in C++, without extracting or executing installer scripts.
+Vivaldi uses its UI bundle; Chrome uses the about template in its resource pack. No backups or installation records are created; an unchanged entry is not rewritten.
 Unsupported UI bundles or external changes are left intact. No page assets are extracted to disk.
 When a supported about-page entry exists, the settings service is available while the browser is running.
 It binds only to `127.0.0.1` and protects its fixed-path configuration API with host, token and origin checks.
 Instances from the same installation share one service and port, with takeover when the owner exits.
 The settings service is not started when no supported about-page entry is found.
+
+Chrome and Vivaldi packages share the native DLL and use this project's `config.ini`.
+They support portable data/cache directories, startup arguments and the boss key.
+Configuration and tab-enhancement options from other Chrome++ projects are not automatically migrated.
 
 This DLL provides configuration options. Create a `config.ini` file in the same directory as the DLL.
 
@@ -321,6 +354,9 @@ This DLL provides configuration options. Create a `config.ini` file in the same 
 **Complete configuration example:**
 ```ini
 [general]
+# 网页设置默认关闭；没有此项也按 0 处理
+webui=0
+
 # Win32k System Call Policy
 # win32k=0 (recommended) - Keep default sandbox, ensure GPU acceleration and video streaming
 # win32k=1 (compatibility) - Use only if Chrome crashes at startup, may affect video quality

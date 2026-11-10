@@ -44,6 +44,15 @@ test('empty and commented-only configs retain runtime defaults', () => {
   assert.deepEqual(ini.read(''), ini.defaults);
   assert.deepEqual(ini.read('; debug_log=1\n# win32k=1'), ini.defaults);
 });
+test('web settings are disabled by default and can be explicitly enabled', () => {
+  assert.equal(ini.defaults['general.webui'], '0');
+  assert.equal(ini.read('')['general.webui'], '0');
+  assert.equal(ini.read('[general]\nwebui=1\n')['general.webui'], '1');
+});
+test('turning off web settings changes only its INI value', () => {
+  const source = '; personal configuration\r\n[general]\r\nwebui=1\r\ndebug_log=1\r\ncustom=keep\r\n\r\n[dir_setting]\r\ndata=D:\\资料\r\n';
+  assert.equal(ini.update(source, { 'general.webui': '0' }), source.replace('webui=1', 'webui=0'));
+});
 test('adding several keys to an existing section does not duplicate the section', () => {
   const result = ini.update('[general]\ncustom=keep\n[other]\nx=2\n', { 'general.debug_log': '1', 'general.command_line': '--force-dark-mode' });
   assert.equal((result.match(/\[general\]/g) || []).length, 1);
@@ -71,7 +80,7 @@ test('settings retain useful controls without promotional copy or decorative num
   }
   assert.doesNotMatch(html, /sidebar-bottom|sidebar-caption|section-number|class="eyebrow"|class="pill"|<footer/);
   assert.doesNotMatch(html, /aria-hidden="true">0[1-5]</);
-  for (const id of ['win32k', 'debug', 'features', 'command', 'data', 'cache', 'boss', 'language', 'theme', 'file-name', 'status']) {
+  for (const id of ['webui', 'win32k', 'debug', 'features', 'command', 'data', 'cache', 'boss', 'language', 'theme', 'file-name', 'status']) {
     assert.match(html, new RegExp(`id="${id}"`), `Required control ${id}`);
   }
 });

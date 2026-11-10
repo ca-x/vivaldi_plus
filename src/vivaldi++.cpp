@@ -27,8 +27,15 @@ void VivaldiPlus()
     // Set custom AppUserModelID for Windows taskbar
     SetAppId();
 
-    if (CanIntegrateAboutPage())
-        InitializeWebSettings(InitializeAboutPage);
+    if (GetConfig().IsWebUiEnabled())
+    {
+        if (CanIntegrateAboutPage())
+            InitializeWebSettings(InitializeAboutPage);
+    }
+    else
+    {
+        RemoveAboutPageEntry();
+    }
 
     // Apply portable mode registry patches
     MakeGreen();

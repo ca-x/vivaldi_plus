@@ -49,10 +49,12 @@ int wmain(int argc, wchar_t** argv) {
             Check(file != INVALID_HANDLE_VALUE, "Could not create empty INI");
             CloseHandle(file);
         } else if (scenario == L"custom") {
+            Check(WritePrivateProfileStringW(L"general", L"webui", L"1", ini.c_str()), "Write web UI opt-in failed");
             Check(WritePrivateProfileStringW(L"general", L"disable_features", L"CustomFeature", ini.c_str()), "Write custom INI failed");
             Check(WritePrivateProfileStringW(L"general", L"command_line", L"--force-dark-mode --user-data-dir=\"C:\\Config Data\" --gopher --type=renderer --single-argument ignored", ini.c_str()), "Write command INI failed");
         }
         const auto& config = GetConfig();
+        Check(config.IsWebUiEnabled() == (scenario == L"custom"), "Embedded web UI must be disabled for missing/empty INI and enabled only by explicit opt-in");
         Check(config.GetDisableFeatures() == (scenario == L"custom" ? L"CustomFeature" : L"WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading"), "Missing and empty INI must have the same default compatibility features");
         Check(config.HasCustomDisableFeatures() == (scenario == L"custom"), "Custom feature indicator is wrong");
 

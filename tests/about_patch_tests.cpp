@@ -70,6 +70,12 @@ void IntegrationTests() {
     const auto timestamp = std::filesystem::last_write_time(bundle);
     InitializeAboutPage(L"http://127.0.0.1:16877/settings.html");
     Check(Read(bundle) == installed && std::filesystem::last_write_time(bundle) == timestamp, "Second startup must not rewrite the bundle");
+    RemoveAboutPageEntry();
+    Check(Read(bundle) == fixture, "Disabling WebUI must remove only its own entry");
+    const auto disabled_time = std::filesystem::last_write_time(bundle);
+    RemoveAboutPageEntry();
+    Check(Read(bundle) == fixture && std::filesystem::last_write_time(bundle) == disabled_time, "Repeated disable must not rewrite files");
+    InitializeAboutPage(L"http://127.0.0.1:16877/settings.html");
     Check(std::distance(std::filesystem::directory_iterator(directory), std::filesystem::directory_iterator()) == 1, "Installer must not leave backups, metadata or temporary files");
     const auto old_backup = directory / L"bundle.js.vivaldi-plus-original";
     const auto old_receipt = directory / L"bundle.js.vivaldi-plus.json";

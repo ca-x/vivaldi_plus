@@ -72,58 +72,42 @@ jobs:
 
       - name: Prepare release files
         run: |
-          ls -R dist/
           mkdir -p release/
-          cd dist/windows_x86 && zip -r ../../release/windows_x86.zip * && cd ../..
-          cd dist/windows_x64 && zip -r ../../release/windows_x64.zip * && cd ../..
-          cd dist/windows_arm64 && zip -r ../../release/windows_arm64.zip * && cd ../..
-          ls -lh release/
+          for browser in vivaldi chrome; do
+            for arch in x86 x64 arm64; do
+              folder="dist/windows_${arch}"
+              (cd "$folder" && zip -r "../../release/${browser}-windows-${arch}.zip" .)
+            done
+          done
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: release/*
           draft: false
-          prerelease: true
+          prerelease: false
           generate_release_notes: true
           name: Release ${{ github.ref_name }}
           body: |
             ## Vivaldi++ ${{ github.ref_name }}
 
-            ### 下载 / Download
-            - **windows_x64.zip** - 64位版本 (推荐 / Recommended)
-            - **windows_arm64.zip** - ARM64版本 (Windows on ARM 设备 / Windows on ARM devices)
-            - **windows_x86.zip** - 32位版本
+            - Native portable mode, startup arguments and boss key for Vivaldi and Chrome.
+            - Optional embedded WebUI with Chinese/English, light/dark/system themes and the updated logo.
+            - WebUI is **off by default**. Missing `webui` in existing configurations is treated as `0`.
+            - To enable it, set `[general] webui=1` in `config.ini` and fully restart every browser instance.
+            - About entry: Vivaldi `vivaldi:about`; Chrome `chrome://settings/help`.
+            - Multiple instances of the same installation share one service and retain the same port during takeover.
+            - Disabling WebUI removes its about entry. Repeated startup does not rewrite unchanged resources.
 
-            ### 架构说明 / Architecture Notes
-            - **x64**: 适用于现代 64 位 Windows 系统 / For modern 64-bit Windows systems
-            - **ARM64**: 适用于 Windows on ARM 设备（如 Surface Pro X、Snapdragon 笔记本） / For Windows on ARM devices (Surface Pro X, Snapdragon laptops)
-            - **x86**: 适用于传统 32 位 Windows 系统 / For legacy 32-bit Windows systems
+            ### Packages
+            Choose `vivaldi-windows-{x86,x64,arm64}.zip` or `chrome-windows-{x86,x64,arm64}.zip`.
+            Both use the shared native DLL and browser-specific resource detection. Install `version.dll` next to the browser executable.
+            Configuration examples are included; existing configuration files are not overwritten automatically.
 
-            ### 技术更新 / Technical Updates
-            - 🔄 **迁移到 Microsoft Detours** - 从 MinHook 迁移以支持 ARM64 / Migrated from MinHook for ARM64 support
-            - ✅ **ARM64 支持** - 完整支持 Windows on ARM 设备 / Full Windows on ARM support
-
-            ### 使用方法 / Usage
-            1. 根据你的系统架构选择对应的zip文件 / Choose the zip file for your system architecture
-            2. 解压下载的zip文件 / Extract the downloaded zip file
-            3. 将 `version.dll` 复制到 Vivaldi 安装目录 / Copy `version.dll` to Vivaldi installation directory
-            4. （可选）复制 `config.ini.example` 为 `config.ini` 并根据需要配置 / (Optional) Copy `config.ini.example` to `config.ini` and configure
-            5. 启动 Vivaldi / Start Vivaldi
-
-            ### 功能特性 / Features
-            - ✅ 老板键支持 - 一键隐藏窗口和静音 / Boss Key - Hide windows and mute audio with hotkey
-            - ✅ 便携模式 - 数据与程序分离 / Portable mode - Data and app separation
-            - ✅ 密码便携化 - 跨机器使用 / Password portability - Cross-machine usage
-
-            ### 配置老板键 / Configure Boss Key
-            在 `config.ini` 中添加：/ Add to `config.ini`:
-            ```ini
-                        [hotkey]
-                        boss_key=Ctrl+Alt+B
-            ```
-
-            ---
-            完整更新日志见下方 / Full changelog below
+            ### 中文说明
+            支持 Vivaldi 和 Chrome，分别提供安装包。网页设置默认关闭；旧配置未写 `webui` 时同样按 `0` 处理。
+            在 `config.ini` 的 `[general]` 中设置 `webui=1`，完全退出所有浏览器实例后重新启动，即可从关于页进入。
+            网页、Logo 和服务均嵌入 DLL，入口由 C++ 处理，不释放安装脚本或生成备份。
+            Chrome 安装包提供本项目的便携化、启动参数和老板键功能，不迁移其他 Chrome++ 项目的标签增强配置。
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

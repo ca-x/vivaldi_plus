@@ -1,6 +1,7 @@
 (function (root) {
   'use strict';
   const defaults = Object.freeze({
+    'general.webui': '0',
     'general.win32k': '0', 'general.debug_log': '0',
     'general.disable_features': '', 'general.command_line': '',
     'dir_setting.data': '', 'dir_setting.cache': '', 'hotkey.boss_key': ''
