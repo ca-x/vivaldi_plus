@@ -40,7 +40,7 @@
 不再释放或执行 PowerShell/C#，不修改 Chromium 的 `resources.pak`。
 网页和 Logo 直接从 DLL 资源提供，不释放到安装目录。
 只在能识别且可写时更新入口；不创建备份或安装记录，重复启动且入口相同时不会重写文件。
-遇到不支持的界面版本或外部修改时保留原文件；服务仍可通过上述本地地址访问。
+遇到不支持的界面版本或外部修改时保留原文件，不强行修改。
 创建 `App/vivaldi-plus-about-disabled` 可禁止自动集成，删除该标记后恢复。
 
 本地服务只监听 IPv4 回环地址。配置接口固定指向本安装的 `config.ini`，
@@ -304,7 +304,7 @@ Fully exit and restart Vivaldi to apply configuration changes. Changing director
 Version 1.6.0.2 integrates the single about entry directly in C++, without extracting or executing installer scripts.
 It leaves `resources.pak` alone and creates no backups or installation records. An unchanged entry is not rewritten.
 Unsupported UI bundles or external changes are left intact. No page assets are extracted to disk.
-The settings service remains accessible directly while the browser is running.
+When a supported about-page entry exists, the settings service is available while the browser is running.
 It binds only to `127.0.0.1` and protects its fixed-path configuration API with host, token and origin checks.
 Instances from the same installation share one service and port, with takeover when the owner exits.
 The settings service is not started when no supported about-page entry is found.

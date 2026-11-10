@@ -23,6 +23,8 @@ The cleanup follows `docs/ui-cleanup-plan.md` and ai-slop-cleaner: retain behavi
 
 ## Language and theme
 
+The native about entry uses Vivaldi's context-free `Settings` translation and aligns its version and link on one baseline. Section navigation exposes one `aria-current="location"` item, highlighted in the semantic accent color; clicks, hash navigation and scrolling keep it synchronized.
+
 Complete Simplified Chinese and English dictionaries cover static text, document title, status messages, confirmation dialogs, help and validation errors. Language defaults to browser language. Light/dark/system selection defaults to system; system follows changes through matchMedia. Both preferences persist independently of config.ini in localStorage; storage failures retain working session preferences. No external network requests.
 
 ## Data and interaction

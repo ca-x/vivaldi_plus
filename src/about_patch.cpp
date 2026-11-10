@@ -100,10 +100,11 @@ bool PatchAboutUi(std::string_view input, std::string_view settings_url,
     const std::string translate = "(0," + translation[1].str() + ".Z)";
     const auto row = std::string(begin_marker) + jsxs + "(\"div\",{id:\"vivaldi-plus-about\",className:\"info-row\",children:[" +
         jsx + "(\"span\",{className:\"label\",children:\"Vivaldi++\"})," +
-        jsxs + "(\"span\",{className:\"value\",children:[" + JavascriptString(version) + ",\" · \"," +
-        jsx + "(\"a\",{id:\"vivaldi-plus-settings\",className:\"link-button\",href:" + url +
+        jsxs + "(\"span\",{className:\"value\",style:{display:\"inline-flex\",alignItems:\"baseline\",gap:\"8px\"},children:[" +
+        jsx + "(\"span\",{children:" + JavascriptString(version) + "})," +
+        jsx + "(\"a\",{id:\"vivaldi-plus-settings\",className:\"link-button\",style:{padding:0,margin:0,font:\"inherit\",lineHeight:\"inherit\"},href:" + url +
         ",target:\"_blank\",rel:\"noopener\",onClick:e=>{e.preventDefault();" + navigate + "(" + url +
-        ")},children:" + translate + "(\"title\",\"Settings\")})]})]})," + std::string(end_marker);
+        ")},children:" + translate + "(\"Settings\")})]})]})," + std::string(end_marker);
     source.insert(start + static_cast<size_t>(content.position() + content.length()), row);
     output = std::move(source);
     error.clear();

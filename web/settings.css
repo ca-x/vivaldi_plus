@@ -163,6 +163,13 @@ p {
   font-weight: 500;
 }
 
+.sidebar nav a[aria-current="location"] {
+  background: var(--soft-accent);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: inset 3px 0 var(--accent);
+}
+
 .sidebar nav a:hover, .sidebar nav a:focus-visible {
   background: var(--soft-accent);
   color: var(--accent);

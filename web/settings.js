@@ -203,6 +203,34 @@
   $('theme').addEventListener('change', event => { theme = event.target.value; persist('theme', theme); applyTheme(); });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (theme === 'system') applyTheme(); });
   addEventListener('beforeunload', event => { if (dirty() || state.busy) { event.preventDefault(); event.returnValue = ''; } });
+  const navigation = [...document.querySelectorAll('.sidebar nav a')];
+  const sections = navigation.map(link => $(link.hash.slice(1)));
+  function selectSection(id) {
+    navigation.forEach(link => {
+      if (link.hash === `#${id}`) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+  }
+  let navigationFrame = 0;
+  function trackSection() {
+    navigationFrame = 0;
+    let selected = sections[0];
+    for (const section of sections) {
+      if (section.getBoundingClientRect().top <= Math.min(innerHeight * 0.25, 180)) selected = section;
+    }
+    if (scrollY + innerHeight >= document.documentElement.scrollHeight - 2) selected = sections.at(-1);
+    selectSection(selected.id);
+  }
+  function scheduleNavigation() {
+    if (!navigationFrame) navigationFrame = requestAnimationFrame(trackSection);
+  }
+  navigation.forEach(link => link.addEventListener('click', () => selectSection(link.hash.slice(1))));
+  addEventListener('hashchange', () => {
+    if (sections.some(section => section.id === location.hash.slice(1))) selectSection(location.hash.slice(1));
+  });
+  addEventListener('scroll', scheduleNavigation, { passive: true });
+  addEventListener('resize', scheduleNavigation);
+  selectSection(sections.some(section => section.id === location.hash.slice(1)) ? location.hash.slice(1) : sections[0].id);
   $('fallback').hidden = bridge || Boolean(window.showOpenFilePicker && window.showSaveFilePicker);
   populate(state.source); applyTheme(); translate();
   if (bridge) reloadBridge();

@@ -49,3 +49,57 @@ test('instances share one service and preserve its port and session during takeo
     fs.rmSync(app, {recursive:true, force:true});
   }
 });
+
+for (const abandon of [false, true]) {
+  test(abandon ? 'standby takes over when the first owner exits inside its readiness callback' : 'standby waits for the first readiness callback before entering the browser', {skip:!host, timeout:25000}, async () => {
+    const app = fs.mkdtempSync(path.join(os.tmpdir(), 'vivaldi-plus-startup-barrier-'));
+    const children = [];
+    const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+    function launch(mode) {
+      const child = spawn(host, [app, mode], {stdio:['pipe','pipe','pipe'], windowsHide:true});
+      child.output = '';
+      child.stdout.on('data', data => { child.output += data; });
+      children.push(child);
+      return child;
+    }
+    async function until(check, message) {
+      const expires = Date.now() + 7000;
+      while (Date.now() < expires) { if (await check()) return; await pause(50); }
+      assert.fail(message);
+    }
+    async function stop(child) {
+      if (child.exitCode !== null || child.signalCode !== null) return;
+      const exited = new Promise(resolve => child.once('exit', resolve));
+      child.kill(); await exited;
+    }
+    async function tokenAt(url) {
+      const response = await fetch(url);
+      assert.equal(response.status, 200);
+      const token = /name="vivaldi-plus-token"\s+content="([a-f0-9]{64})"/.exec(await response.text())?.[1];
+      assert.ok(token);
+      return token;
+    }
+    try {
+      const owner = launch('--blocked-ready');
+      await until(() => owner.output.includes('callback-start') && /callback-url=(http:\/\/[^\r\n]+)/.test(owner.output), 'Owner did not enter its blocked callback');
+      const url = /callback-url=(http:\/\/[^\r\n]+)/.exec(owner.output)?.[1];
+      assert.ok(url);
+      const token = await tokenAt(url);
+      const standby = launch('--service-test');
+      await until(() => standby.output.includes('initializing'), 'Standby did not begin initialization');
+      await pause(250);
+      assert.equal(/^http:\/\//m.test(standby.output), false, 'Standby entered the browser while the about callback was still blocked');
+      assert.equal(standby.output.includes('ready-count='), false);
+      if (abandon) await stop(owner);
+      else owner.stdin.write('continue\n');
+      await until(() => /^http:\/\//m.test(standby.output) && standby.output.includes(abandon ? 'ready-count=1' : 'ready-count=0'), 'Standby did not finish initialization after callback completion or owner exit');
+      assert.ok(standby.output.includes(url), 'Standby must retain the shared URL');
+      assert.ok(standby.output.includes(abandon ? 'ready-count=1' : 'ready-count=0'));
+      assert.equal(await tokenAt(url), token, 'Readiness takeover must retain the shared session token');
+      assert.deepEqual(fs.readdirSync(app), [], 'Startup barrier must not create disk coordination files');
+    } finally {
+      for (const child of children) await stop(child);
+      fs.rmSync(app, {recursive:true, force:true});
+    }
+  });
+}

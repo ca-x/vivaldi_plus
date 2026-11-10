@@ -34,6 +34,7 @@ std::atomic<SharedService*> sharedService{nullptr};
 HANDLE installationMutex = nullptr;
 HANDLE serviceMapping = nullptr;
 HANDLE initialAttempt = nullptr;
+HANDLE serviceReady = nullptr;
 WebSettingsReady onServiceReady = nullptr;
 
 struct File {
@@ -293,8 +294,10 @@ DWORD WINAPI GuardService(void*)
 {
     bool startup = true;
     for (;;) {
-        const DWORD result = WaitForSingleObject(installationMutex, startup ? 0 : INFINITE);
-        if (result == WAIT_TIMEOUT) {
+        const HANDLE startupWait[] = {installationMutex, serviceReady};
+        const DWORD result = startup ? WaitForMultipleObjects(2, startupWait, FALSE, INFINITE)
+            : WaitForSingleObject(installationMutex, INFINITE);
+        if (startup && result == WAIT_OBJECT_0 + 1) {
             SetEvent(initialAttempt);
             startup = false;
             continue;
@@ -304,7 +307,9 @@ DWORD WINAPI GuardService(void*)
             DebugLog(L"Web settings service lease could not be acquired");
             return 0;
         }
+        ResetEvent(serviceReady);
         const bool owner = BecomeOwner();
+        if (owner) SetEvent(serviceReady);
         SetEvent(initialAttempt);
         startup = false;
         if (owner) {
@@ -336,12 +341,14 @@ void InitializeWebSettings(WebSettingsReady on_ready)
     serviceMapping = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(SharedService), mappingName.c_str());
     auto state = serviceMapping ? static_cast<SharedService*>(MapViewOfFile(serviceMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SharedService))) : nullptr;
     initialAttempt = CreateEventW(nullptr, TRUE, FALSE, nullptr);
-    if (!state || !initialAttempt) {
+    serviceReady = CreateEventW(nullptr, TRUE, FALSE, (name + L"-Ready").c_str());
+    if (!state || !initialAttempt || !serviceReady) {
         if (state) UnmapViewOfFile(state);
         if (serviceMapping) CloseHandle(serviceMapping);
         if (initialAttempt) CloseHandle(initialAttempt);
+        if (serviceReady) CloseHandle(serviceReady);
         CloseHandle(installationMutex);
-        installationMutex = serviceMapping = initialAttempt = nullptr;
+        installationMutex = serviceMapping = initialAttempt = serviceReady = nullptr;
         return;
     }
     configPath = app + L"\\config.ini";
@@ -352,13 +359,15 @@ void InitializeWebSettings(WebSettingsReady on_ready)
         // Keep the published view mapped for any concurrent URL getter. It can
         // still describe a service owned by another process of this installation.
         CloseHandle(initialAttempt);
+        CloseHandle(serviceReady);
         CloseHandle(installationMutex);
-        installationMutex = initialAttempt = nullptr;
+        installationMutex = initialAttempt = serviceReady = nullptr;
         return;
     }
     CloseHandle(thread);
     // The first owner finishes its about-page callback before browser entry. A
-    // standby process signals immediately and only waits for a future takeover.
+    // standby also waits for that callback before entering the browser, and can
+    // acquire an abandoned lease if the owner dies before signaling readiness.
     WaitForSingleObject(initialAttempt, INFINITE);
 }
 

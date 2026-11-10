@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
     Check(PatchAboutUi(fixture, url, "1.6.0.2", output, error), error.c_str());
     Check(output.find("className:\"card-content\",children:[/* vivaldi-plus-ui:start */") != std::string::npos, "Row must be inside the native system/build card");
     Check(output.find("id:\"vivaldi-plus-about\",className:\"info-row\"") != std::string::npos, "Native info-row missing");
-    Check(output.find("children:(0,I.Z)(\"title\",\"Settings\")") != std::string::npos, "Settings must use the native zh/en translation function");
+    Check(output.find("children:(0,I.Z)(\"Settings\")") != std::string::npos, "Settings must use the native zh/en translation function");
     Check(output.find("e.preventDefault();re(\"http://127.0.0.1:16877/settings.html?version=1.6.0.2\")") != std::string::npos, "Settings must open via the existing Vivaldi new-tab callback");
     Check(output.find("Settings / ") == std::string::npos, "Do not mix languages in the link label");
     std::string repeated, upgraded;
