@@ -1,5 +1,5 @@
 ; Vivaldi Plus Configuration File
-; Rename this file to "config.ini" and place it in the same directory as the Vivaldi executable
+; Rename this file to "config.ini" and place it in the same directory as the Vivaldi or Chrome executable
 ; All settings are optional - defaults will be used if not specified
 
 [general]
@@ -122,7 +122,7 @@ cache=%app%\..\Cache
 
 [hotkey]
 ; Boss Key - Hide/Show Browser and Mute/Unmute Audio
-; Press this hotkey to instantly hide all Vivaldi windows and mute all audio
+; Press this hotkey to instantly hide all windows of this browser and mute all audio
 ; Press again to restore windows and unmute audio
 ;
 ; Format: Modifier+Modifier+Key
