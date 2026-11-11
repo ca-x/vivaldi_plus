@@ -1,4 +1,4 @@
-﻿#include "lifecycle_commands.h"
+#include "lifecycle_commands.h"
 #include <windows.h>
 #include <shellapi.h>
 #include <vector>
@@ -78,7 +78,7 @@ void RunLifecycleCommand(const std::wstring& command, const std::wstring& appDir
     STARTUPINFOW startup{};
     startup.cb = sizeof(startup);
     PROCESS_INFORMATION process{};
-    if (!CreateProcessW(executable.c_str(), buffer.data(), nullptr, nullptr, FALSE, 0,
+    if (!CreateProcessW(executable.c_str(), buffer.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW,
                         nullptr, appDir.c_str(), &startup, &process)) {
         OutputDebugStringW(L"[vivaldi++] Lifecycle command could not be started.\n");
         return;
@@ -87,5 +87,3 @@ void RunLifecycleCommand(const std::wstring& command, const std::wstring& appDir
     if (wait) WaitForSingleObject(process.hProcess, 3000);
     CloseHandle(process.hProcess);
 }
-
-

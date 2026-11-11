@@ -1,9 +1,12 @@
-﻿#include <windows.h>
+#include <windows.h>
 #include <string>
 #include <cwchar>
 #include <cstdlib>
 int wmain(int argc, wchar_t** argv) {
     if (argc < 3) return 2;
+    wchar_t no_console[4]{};
+    if (GetEnvironmentVariableW(L"LIFECYCLE_EXPECT_NO_CONSOLE", no_console, 4) && GetConsoleWindow()) return 5;
+    if (wcscmp(argv[1], L"/d") == 0) return 7;
     wchar_t expected[32768]{}, actual[32768]{};
     if (GetEnvironmentVariableW(L"LIFECYCLE_EXPECT_CWD", expected, 32768)) {
         if (!GetCurrentDirectoryW(32768, actual) || _wcsicmp(expected, actual)) return 4;
@@ -24,4 +27,3 @@ int wmain(int argc, wchar_t** argv) {
     if (argc > 4 && !append(argv[4])) return 3;
     return 0;
 }
-

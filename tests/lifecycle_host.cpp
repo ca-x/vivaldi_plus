@@ -1,4 +1,4 @@
-﻿#include <windows.h>
+#include <windows.h>
 #include <string>
 #include <cwchar>
 #include <cstdlib>
@@ -51,7 +51,3 @@ int wmain(int argc, wchar_t** argv) {
     }
     ExitProcess(0);
 }
-
-
-
-

@@ -1,4 +1,4 @@
-﻿#include "lifecycle.h"
+#include "lifecycle.h"
 #include "lifecycle_commands.h"
 #include "lifecycle_owners.h"
 #ifdef VIVALDI_PLUS_LIFECYCLE_TEST
@@ -169,8 +169,3 @@ void InitializeLifecycle(const LifecycleOptions& options) {
     if (thread) CloseHandle(thread);
     else OutputDebugStringW(L"[vivaldi++] Lifecycle owner thread creation failed.\n");
 }
-
-
-
-
-

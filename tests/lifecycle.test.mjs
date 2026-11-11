@@ -1,4 +1,4 @@
-﻿import { test } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, copyFileSync, rmSync } from 'node:fs';
@@ -21,7 +21,7 @@ function fixture(t) {
   const command = label => `"%app%\\helper.exe" "${log}" ${label}`;
   const lines = () => { try { return readFileSync(log, 'utf8').trim().split('\n'); } catch { return []; } };
   const run = (settings = {}) => {
-    const p = spawn(join(app, 'host.exe'), [app, settings.profile ?? profile, settings.enabled ?? 'on', settings.start ?? command('start'), settings.exit ?? command('exit'), String(settings.duration ?? 1500), settings.hold ? 'hold' : ''], {cwd:settings.cwd,env:{...process.env,...settings.env,LIFECYCLE_EXPECT_CWD:app,LIFECYCLE_TEST_LABEL:'expanded'}});
+    const p = spawn(join(app, 'host.exe'), [app, settings.profile ?? profile, settings.enabled ?? 'on', settings.start ?? command('start'), settings.exit ?? command('exit'), String(settings.duration ?? 1500), settings.hold ? 'hold' : ''], {cwd:settings.cwd,env:{...process.env,...settings.env,LIFECYCLE_EXPECT_CWD:app,LIFECYCLE_EXPECT_NO_CONSOLE:'1',LIFECYCLE_TEST_LABEL:'expanded'}});
     p.done = new Promise((r, reject) => { p.on('error', reject); p.on('exit', r); });
     p.ready = new Promise(r => p.stdout.once('data', r));
     hosts.push(p);
@@ -141,4 +141,3 @@ test('window adoption excludes another installation and same-install forwarder',
   separate.stdin.write('exit\n'); await separate.done;
   assert.deepEqual(other.lines(), ['start','exit']);
 });
-

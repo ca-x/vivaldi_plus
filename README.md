@@ -40,6 +40,7 @@ launch_on_exit=cmd.exe /d /c "%app%\tools\cleanup.cmd"
 每项填写一条 Windows 可执行程序命令行，支持 `%app%`、环境变量和带引号的路径。
 手动编辑 INI 时，含双引号的完整命令可用外层单引号包住，避免 Windows INI 读取时去掉程序路径的引号。
 不自动调用命令解释器，不按分号拆分；运行脚本时需明确写出 `cmd.exe /d /c` 或 `powershell.exe -File`。
+控制台命令在后台执行，图形程序仍可显示自己的窗口。
 退出动作最多等待 3 秒，超时后浏览器继续退出，不终止已启动的命令；崩溃或强制结束不保证执行退出动作。
 重启时先等待旧实例的退出动作，再执行新实例的启动动作。修改后完全退出所有实例再启动。
 
@@ -347,6 +348,7 @@ Each field is one executable command line. `%app%`, environment variables and qu
 For manual INI edits, enclose a command containing double quotes in outer single quotes, for example
 `launch_on_startup='"%app%\tools\helper.exe" --portable'`.
 No implicit shell or semicolon splitting is used; specify `cmd.exe /d /c` or `powershell.exe -File` for scripts.
+Console commands run without a console window; GUI applications may show their own windows.
 The browser waits at most three seconds for an exit command and does not kill it afterward.
 Exit actions are not guaranteed after a crash or forced termination. On relaunch, the previous exit wait precedes the new startup command.
 Completely exit every browser instance before applying changed configuration.
