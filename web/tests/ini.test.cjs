@@ -53,6 +53,51 @@ test('turning off web settings changes only its INI value', () => {
   const source = '; personal configuration\r\n[general]\r\nwebui=1\r\ndebug_log=1\r\ncustom=keep\r\n\r\n[dir_setting]\r\ndata=D:\\资料\r\n';
   assert.equal(ini.update(source, { 'general.webui': '0' }), source.replace('webui=1', 'webui=0'));
 });
+
+test('lifecycle actions require an explicit opt-in and blank commands by default', () => {
+  for (const source of ['', '; existing configuration\n[general]\nwebui=1\n']) {
+    const values = ini.read(source);
+    assert.equal(values['general.lifecycle_actions'], '0');
+    assert.equal(values['general.launch_on_startup'], '');
+    assert.equal(values['general.launch_on_exit'], '');
+  }
+  const script = fs.readFileSync(path.join(__dirname, '../settings.js'), 'utf8');
+  const template = script.match(/const template = ('[^\n]+');/)[1];
+  assert.deepEqual(ini.read(vm.runInNewContext(template)), ini.defaults);
+  for (const key of ['lifecycle_actions=0', 'launch_on_startup=', 'launch_on_exit=']) assert.ok(template.includes(key));
+});
+
+test('saving lifecycle commands preserves executable quotes, semicolons, variables and unrelated data', () => {
+  const source = '; keep my comment\r\n[general]\r\ncustom=untouched\r\nwebui=0\r\n';
+  for (const command of ['"C:\\Program Files\\工具.exe"', '"%app%\\工具.exe" "a;b"', '"%app%\\工具.exe" "O\'Brien"', 'cmd.exe /d /c "echo %TEMP%"', 'powershell.exe -File "%app%\\ready.ps1"']) {
+    const values = { 'general.lifecycle_actions': '1', 'general.launch_on_startup': command, 'general.launch_on_exit': command };
+    const saved = ini.update(source, values);
+    const reloaded = ini.read(ini.decode(ini.encode(saved)));
+    for (const [key, value] of Object.entries(values)) assert.equal(reloaded[key], value);
+    assert.ok(saved.startsWith(source));
+    const off = ini.update(saved, { 'general.lifecycle_actions': '0' });
+    assert.equal(off, saved.replace('lifecycle_actions=1', 'lifecycle_actions=0'));
+    assert.equal(ini.read(off)['general.launch_on_startup'], command);
+  }
+});
+
+test('lifecycle navigation and labelled command fields have complete bilingual help', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../settings.html'), 'utf8');
+  assert.match(html, /href="#general"[\s\S]*href="#lifecycle"[\s\S]*href="#paths"/);
+  for (const [id, key] of [['lifecycle-actions', 'lifecycle_actions'], ['startup-action', 'launch_on_startup'], ['exit-action', 'launch_on_exit']]) {
+    assert.match(html, new RegExp(`label for="${id}"`));
+    assert.match(html, new RegExp(`id="${id}"[^>]+data-setting="general\\.${key}"`));
+    if (id !== 'lifecycle-actions') assert.match(html, new RegExp(`id="${id}"[^>]+maxlength="4094"`));
+  }
+  const context = {};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../i18n.js'), 'utf8'), context);
+  for (const language of ['en', 'zh-CN']) {
+    for (const key of ['lifecycle', 'lifecycleActions', 'lifecycleHelp', 'startupAction', 'startupActionHelp', 'exitAction', 'exitActionHelp', 'actionCommandHelp']) {
+      assert.ok(context.VivaldiMessages[language][key], `${language}: ${key}`);
+      assert.ok(html.includes(`data-i18n="${key}"`), key);
+    }
+  }
+});
 test('adding several keys to an existing section does not duplicate the section', () => {
   const result = ini.update('[general]\ncustom=keep\n[other]\nx=2\n', { 'general.debug_log': '1', 'general.command_line': '--force-dark-mode' });
   assert.equal((result.match(/\[general\]/g) || []).length, 1);

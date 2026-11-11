@@ -92,6 +92,10 @@ jobs:
             ## Vivaldi++ ${{ github.ref_name }}
 
             - Native portable mode, startup arguments and boss key for Vivaldi and Chrome.
+            - Portable relaunch now uses CreateProcessW with explicit paths, safe quoting and no inherited handles.
+            - Optional lifecycle actions (`lifecycle_actions=0` by default), configurable in the WebUI or INI.
+            - First real instance runs startup; last normal exit runs exit. Multi-instance and relaunch ordering are coordinated in memory.
+            - Exit actions wait at most three seconds and are not guaranteed on crashes or forced termination.
             - Optional embedded WebUI with Chinese/English, light/dark/system themes and the updated logo.
             - WebUI is **off by default**. Missing `webui` in existing configurations is treated as `0`.
             - To enable it, set `[general] webui=1` in `config.ini` and fully restart every browser instance.
@@ -106,6 +110,8 @@ jobs:
 
             ### 中文说明
             支持 Vivaldi 和 Chrome，分别提供安装包。网页设置默认关闭；旧配置未写 `webui` 时同样按 `0` 处理。
+            新增默认关闭的启停动作：在 WebUI 或 `[general] lifecycle_actions=1` 中启用并配置两条命令。
+            同一安装首次启动/最后正常退出执行，重复窗口不重复触发；退出最多等待三秒，崩溃或强杀不保证执行。
             在 `config.ini` 的 `[general]` 中设置 `webui=1`，完全退出所有浏览器实例后重新启动，即可从关于页进入。
             网页、Logo 和服务均嵌入 DLL，入口由 C++ 处理，不释放安装脚本或生成备份。
             Chrome 安装包提供本项目的便携化、启动参数和老板键功能，不迁移其他 Chrome++ 项目的标签增强配置。

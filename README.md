@@ -24,6 +24,28 @@
 
 ### 自定义配置
 
+#### 启停动作（默认关闭）
+
+启停动作与 WebUI 开关独立。未配置 `lifecycle_actions` 时按 `0` 处理，不执行任何命令。
+同一安装目录下，第一个真正持有用户数据目录的实例执行启动动作，最后一个正常退出的实例执行退出动作。
+打开第二个窗口、转交网址的临时进程不会重复执行；多个独立配置实例也共用这一组动作。
+
+```ini
+[general]
+lifecycle_actions=1
+launch_on_startup='"%app%\tools\helper.exe" --portable'
+launch_on_exit=cmd.exe /d /c "%app%\tools\cleanup.cmd"
+```
+
+每项填写一条 Windows 可执行程序命令行，支持 `%app%`、环境变量和带引号的路径。
+手动编辑 INI 时，含双引号的完整命令可用外层单引号包住，避免 Windows INI 读取时去掉程序路径的引号。
+不自动调用命令解释器，不按分号拆分；运行脚本时需明确写出 `cmd.exe /d /c` 或 `powershell.exe -File`。
+控制台命令在后台执行，图形程序仍可显示自己的窗口。
+退出动作最多等待 3 秒，超时后浏览器继续退出，不终止已启动的命令；崩溃或强制结束不保证执行退出动作。
+重启时先等待旧实例的退出动作，再执行新实例的启动动作。修改后完全退出所有实例再启动。
+
+开启 WebUI 后，也可在“启停动作”中设置开关和两条命令。WebUI 不提供立即运行命令的按钮。
+
 #### 网页设置（默认关闭）
 
 网页设置为可选功能。没有 `config.ini`，或旧配置没有 `webui`，都按 `webui=0` 处理：
@@ -314,6 +336,22 @@ xmake
 > - ~~Right-click + wheel to scroll tabs~~
 
 ### Configuration
+
+#### Lifecycle actions (off by default)
+
+`[general] lifecycle_actions=0` is the default, including existing configurations with no such key.
+Set it to `1` and configure `launch_on_startup` / `launch_on_exit`, or use the WebUI's Lifecycle actions section.
+Within one installation, the first real browser owner runs startup and the last normal exit runs the exit command.
+Forwarding processes and additional windows do not execute another pair. Separate user-data directories share this installation-wide group.
+
+Each field is one executable command line. `%app%`, environment variables and quoted paths are supported.
+For manual INI edits, enclose a command containing double quotes in outer single quotes, for example
+`launch_on_startup='"%app%\tools\helper.exe" --portable'`.
+No implicit shell or semicolon splitting is used; specify `cmd.exe /d /c` or `powershell.exe -File` for scripts.
+Console commands run without a console window; GUI applications may show their own windows.
+The browser waits at most three seconds for an exit command and does not kill it afterward.
+Exit actions are not guaranteed after a crash or forced termination. On relaunch, the previous exit wait precedes the new startup command.
+Completely exit every browser instance before applying changed configuration.
 
 #### Web settings (off by default)
 

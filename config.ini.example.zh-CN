@@ -10,6 +10,19 @@
 ; 关闭时只移除本项目自己的入口，保留浏览器其他资源
 webui=0
 
+; 启停动作默认关闭；旧配置缺少此开关同样按 0 处理。
+; 同一安装目录：第一个有效实例执行启动动作，最后一个正常退出的实例执行退出动作。
+; 每项是一条 Windows 可执行程序命令行；脚本必须显式指定解释器，不自动拆分分号。
+; 支持 %app% 和环境变量，带空格的路径需要双引号。
+; 手动编辑 INI 时，含双引号的完整命令可再用外层单引号包住：
+; launch_on_startup='"%app%\tools\helper.exe" --portable'
+; launch_on_exit=cmd.exe /d /c "%app%\tools\cleanup.cmd"
+; 退出动作最多等待 3 秒，超时后不强杀命令。崩溃/强杀不保证执行退出动作。
+; 修改后完全退出所有浏览器实例再启动。
+lifecycle_actions=0
+launch_on_startup=
+launch_on_exit=
+
 ; Win32k 系统调用策略
 ; 控制是否强制启用渲染进程中的 win32k 系统调用
 ;

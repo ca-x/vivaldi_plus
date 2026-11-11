@@ -15,6 +15,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -26,13 +28,23 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path ./build/test-tools -Force | Out-Null
           ./tests/run-native.ps1
+          ./tests/run-portable-launch.ps1 -BinaryOutput (Join-Path $pwd 'build/test-tools/portable_launch_tests.exe')
           ./tests/run-web-http.ps1
           ./tests/run-web-config.ps1
           ./tests/run-about-patch.ps1
           ./tests/run-gzip.ps1 -BinaryOutput (Join-Path $pwd 'build/test-tools/gzip_tests.exe')
           ./tests/run-chrome-about.ps1 -BinaryOutput (Join-Path $pwd 'build/test-tools/chrome_about_tests.exe')
-      - name: Web and about-page regression tests
-        run: node --test tests/*.test.mjs web/tests/*.test.cjs
+      - name: Build and exercise lifecycle actions
+        shell: pwsh
+        run: |
+          ./tests/build-lifecycle-host.ps1
+          node --test tests/lifecycle.test.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-lifecycle-host
+          path: build/lifecycle-host/*.exe
+      - name: Web configuration regression tests
+        run: node --test web/tests/*.test.cjs
       - name: Build the embedded settings test host
         shell: pwsh
         run: ./tests/build-web-host.ps1

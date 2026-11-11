@@ -10,6 +10,19 @@
 ; Disabling removes only our own entry and preserves other browser resources
 webui=0
 
+; Optional lifecycle actions. Missing or 0 keeps all actions disabled.
+; First real instance starts the startup command; last normal exit starts the exit command.
+; Each value is ONE Windows executable command line; use an explicit interpreter for scripts.
+; %app% and environment variables are expanded. Quote paths containing spaces.
+; For manual INI edits, wrap a command containing double quotes in outer single quotes:
+; launch_on_startup='"%app%\tools\helper.exe" --portable'
+; launch_on_exit=cmd.exe /d /c "%app%\tools\cleanup.cmd"
+; Exit commands are waited on for up to 3 seconds, then left running.
+; Crash/forced termination cannot guarantee exit commands. Fully restart all instances after edits.
+lifecycle_actions=0
+launch_on_startup=
+launch_on_exit=
+
 ; Win32k System Call Policy
 ; Controls whether to forcibly enable win32k system calls in renderer processes
 ;
