@@ -3,6 +3,48 @@
 #include <shellapi.h>
 #include <vector>
 
+namespace {
+bool AbsoluteDirectory(const std::wstring& path) {
+    return (path.size() >= 3 && path[1] == L':' && (path[2] == L'\\' || path[2] == L'/')) ||
+           (path.size() >= 3 && path[0] == L'\\' && path[1] == L'\\');
+}
+std::wstring FindExecutable(const std::wstring& executable, const std::wstring& appDir) {
+    std::vector<std::wstring> directories{appDir};
+    wchar_t system[32768]{};
+    UINT length = GetSystemDirectoryW(system, 32768);
+    if (length && length < 32768) directories.emplace_back(system, length);
+    length = GetWindowsDirectoryW(system, 32768);
+    if (length && length < 32768) directories.emplace_back(system, length);
+    DWORD size = GetEnvironmentVariableW(L"PATH", nullptr, 0);
+    if (size && size <= 32767) {
+        std::vector<wchar_t> environment(size);
+        DWORD actual = GetEnvironmentVariableW(L"PATH", environment.data(), size);
+        if (actual && actual < size) {
+            std::wstring path(environment.data(), actual);
+            size_t start = 0;
+            while (start <= path.size()) {
+                size_t end = path.find(L';', start);
+                std::wstring directory = path.substr(start, end == std::wstring::npos ? end : end - start);
+                if (directory.size() >= 2 && directory.front() == L'"' && directory.back() == L'"')
+                    directory = directory.substr(1, directory.size() - 2);
+                if (AbsoluteDirectory(directory)) directories.push_back(directory);
+                if (end == std::wstring::npos) break;
+                start = end + 1;
+            }
+        }
+    }
+    std::vector<wchar_t> found(32768);
+    for (const auto& directory : directories) {
+        if (!AbsoluteDirectory(directory)) continue;
+        // A non-null explicit path suppresses SearchPath's inherited-CWD search.
+        DWORD result = SearchPathW(directory.c_str(), executable.c_str(), L".exe",
+                                   static_cast<DWORD>(found.size()), found.data(), nullptr);
+        if (result && result < found.size()) return std::wstring(found.data(), result);
+    }
+    return {};
+}
+} // namespace
+
 void RunLifecycleCommand(const std::wstring& command, const std::wstring& appDir, bool wait) {
     if (command.empty()) return;
     std::wstring expanded = command;
@@ -27,14 +69,10 @@ void RunLifecycleCommand(const std::wstring& command, const std::wstring& appDir
         executable = appDir + L"\\" + executable;
     }
     if (executable.find_first_of(L"\\/:") == std::wstring::npos) {
-        std::wstring local = appDir + L"\\" + executable;
-        if (GetFileAttributesW(local.c_str()) != INVALID_FILE_ATTRIBUTES) {
-            executable = local;
-        } else {
-            std::vector<wchar_t> path(32768);
-            DWORD length = SearchPathW(nullptr, executable.c_str(), L".exe", static_cast<DWORD>(path.size()), path.data(), nullptr);
-            if (!length || length >= path.size()) return;
-            executable.assign(path.data(), length);
+        executable = FindExecutable(executable, appDir);
+        if (executable.empty()) {
+            OutputDebugStringW(L"[vivaldi++] Lifecycle executable could not be resolved.\n");
+            return;
         }
     }
     STARTUPINFOW startup{};
@@ -49,4 +87,5 @@ void RunLifecycleCommand(const std::wstring& command, const std::wstring& appDir
     if (wait) WaitForSingleObject(process.hProcess, 3000);
     CloseHandle(process.hProcess);
 }
+
 
