@@ -2,7 +2,7 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const fields = [...document.querySelectorAll('[data-setting]')];
-  const template = '[general]\r\nwebui=0\r\nwin32k=0\r\ndebug_log=0\r\ndisable_features=\r\ncommand_line=\r\n\r\n[dir_setting]\r\ndata=\r\ncache=\r\n\r\n[hotkey]\r\nboss_key=\r\n';
+  const template = '[general]\r\nwebui=0\r\nlifecycle_actions=0\r\nlaunch_on_startup=\r\nlaunch_on_exit=\r\nwin32k=0\r\ndebug_log=0\r\ndisable_features=\r\ncommand_line=\r\n\r\n[dir_setting]\r\ndata=\r\ncache=\r\n\r\n[hotkey]\r\nboss_key=\r\n';
   const state = { source: template, handle: null, bytes: null, name: '', snapshot: {}, busy: false, message: 'ready', error: false };
   const token = document.querySelector('meta[name="vivaldi-plus-token"]')?.content || '';
   const bridge = location.protocol === 'http:' && location.hostname === '127.0.0.1' && token.length >= 16 && token !== '__VIVALDI_PLUS_TOKEN__';

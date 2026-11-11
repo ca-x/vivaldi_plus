@@ -1,6 +1,6 @@
 #define RELEASE_VER_MAIN 1
 #define RELEASE_VER_SUB 6
-#define RELEASE_VER_FIX 1
+#define RELEASE_VER_FIX 2
 #define RELEASE_VER_PATCH 0
 
 #define TOSTRING2(arg) #arg

@@ -4,6 +4,11 @@
     'zh-CN': {
       title: 'Vivaldi++ 设置', settings: '设置',
       general: '常规', paths: '存储目录', hotkey: '快捷键', appearance: '外观与语言', about: '关于',
+      lifecycle: '启停动作', lifecycleActions: '启用启停动作',
+      lifecycleHelp: '默认关闭。启用并保存后，完全退出所有浏览器实例，再重新启动才会生效。',
+      startupAction: '启动命令', startupActionHelp: '首个浏览器实例启动时执行一次。留空不执行。',
+      exitAction: '退出命令', exitActionHelp: '最后一个实例正常退出时执行，最多等待 3 秒。崩溃或强制结束时不保证执行。留空不执行。',
+      actionCommandHelp: '每项填写一条 Windows 可执行命令行，带空格的路径需加双引号。支持 %app% 和环境变量。脚本需明确指定解释器，例如 cmd.exe /d /c "…" 或 powershell.exe -File "…"；不会自动使用 shell，也不会按分号拆分。',
       heading: 'Vivaldi++ 设置',
       fileTitle: '从配置文件开始', fileHelp: '选择浏览器 App 目录下的 config.ini。没有配置文件时，可以直接调整选项并另存为 config.ini。',
       connectedTitle: '配置文件',
@@ -40,6 +45,11 @@
     en: {
       title: 'Vivaldi++ Settings', settings: 'Settings',
       general: 'General', paths: 'Storage', hotkey: 'Keyboard shortcut', appearance: 'Appearance & language', about: 'About',
+      lifecycle: 'Lifecycle actions', lifecycleActions: 'Enable lifecycle actions',
+      lifecycleHelp: 'Off by default. Enable and save, then fully exit all browser instances and restart to apply.',
+      startupAction: 'Startup command', startupActionHelp: 'Run once when the first browser instance starts. Leave blank to skip.',
+      exitAction: 'Exit command', exitActionHelp: 'Run when the last instance exits normally; wait up to 3 seconds. Not guaranteed after a crash or forced termination. Leave blank to skip.',
+      actionCommandHelp: 'Enter one Windows executable command line per field. Quote paths containing spaces. Supports %app% and environment variables. Scripts need an explicit interpreter, e.g. cmd.exe /d /c "…" or powershell.exe -File "…"; no automatic shell or splitting on semicolons.',
       heading: 'Vivaldi++ settings',
       fileTitle: 'Start with your configuration', fileHelp: 'Choose config.ini from the browser App folder. If it does not exist, adjust your preferences and save a new config.ini.',
       connectedTitle: 'Configuration file',

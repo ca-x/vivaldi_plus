@@ -49,11 +49,17 @@ int wmain(int argc, wchar_t** argv) {
             Check(file != INVALID_HANDLE_VALUE, "Could not create empty INI");
             CloseHandle(file);
         } else if (scenario == L"custom") {
+            Check(WritePrivateProfileStringW(L"general", L"lifecycle_actions", L"1", ini.c_str()), "Write lifecycle opt-in failed");
+            Check(WritePrivateProfileStringW(L"general", L"launch_on_startup", L"\"\"%app%\\helper tool.exe\" \"quoted argument\"\"", ini.c_str()), "Write startup action failed");
+            Check(WritePrivateProfileStringW(L"general", L"launch_on_exit", L"\"cmd.exe /d /c \"%app%\\cleanup.cmd\"\"", ini.c_str()), "Write exit action failed");
             Check(WritePrivateProfileStringW(L"general", L"webui", L"1", ini.c_str()), "Write web UI opt-in failed");
             Check(WritePrivateProfileStringW(L"general", L"disable_features", L"CustomFeature", ini.c_str()), "Write custom INI failed");
             Check(WritePrivateProfileStringW(L"general", L"command_line", L"--force-dark-mode --user-data-dir=\"C:\\Config Data\" --gopher --type=renderer --single-argument ignored", ini.c_str()), "Write command INI failed");
         }
         const auto& config = GetConfig();
+        Check(config.AreLifecycleActionsEnabled() == (scenario == L"custom"), "Lifecycle actions must default off and require explicit opt-in");
+        Check(config.GetLaunchOnStartup() == (scenario == L"custom" ? L"\"%app%\\helper tool.exe\" \"quoted argument\"" : L""), "Startup command must preserve inner Windows quotes");
+        Check(config.GetLaunchOnExit() == (scenario == L"custom" ? L"cmd.exe /d /c \"%app%\\cleanup.cmd\"" : L""), "Exit command must preserve inner Windows quotes");
         Check(config.IsWebUiEnabled() == (scenario == L"custom"), "Embedded web UI must be disabled for missing/empty INI and enabled only by explicit opt-in");
         Check(config.GetDisableFeatures() == (scenario == L"custom" ? L"CustomFeature" : L"WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading"), "Missing and empty INI must have the same default compatibility features");
         Check(config.HasCustomDisableFeatures() == (scenario == L"custom"), "Custom feature indicator is wrong");

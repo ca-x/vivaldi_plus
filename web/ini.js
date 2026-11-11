@@ -3,6 +3,7 @@
   const defaults = Object.freeze({
     'general.webui': '0',
     'general.win32k': '0', 'general.debug_log': '0',
+    'general.lifecycle_actions': '0', 'general.launch_on_startup': '', 'general.launch_on_exit': '',
     'general.disable_features': '', 'general.command_line': '',
     'dir_setting.data': '', 'dir_setting.cache': '', 'hotkey.boss_key': ''
   });
@@ -33,7 +34,8 @@
     for (const [key, value] of Object.entries(values)) {
       if (!Object.hasOwn(defaults, key)) throw new Error(`Unknown setting: ${key}`);
       if (typeof value !== 'string' || /[\r\n\0]/.test(value)) throw new Error(`Invalid INI value: ${key}`);
-      if (value !== original[key]) pending.set(key, value);
+      if (value !== original[key]) pending.set(key,
+        /^general\.launch_on_(startup|exit)$/.test(key) && value ? `"${value}"` : value);
     }
     for (const row of rows) {
       if (pending.has(row.key)) {

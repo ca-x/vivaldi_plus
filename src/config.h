@@ -17,6 +17,9 @@ private:
     bool win32k_enabled_;
     bool debug_log_enabled_;
     bool webui_enabled_ = false;
+    bool lifecycle_actions_enabled_ = false;
+    std::wstring launch_on_startup_;
+    std::wstring launch_on_exit_;
     std::wstring command_line_;
     std::wstring disable_features_ = L"WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading";
     bool has_custom_disable_features_;
@@ -41,6 +44,12 @@ private:
         }
 
         webui_enabled_ = (GetPrivateProfileIntW(L"general", L"webui", 0, config_path_.c_str()) != 0);
+        lifecycle_actions_enabled_ = (GetPrivateProfileIntW(L"general", L"lifecycle_actions", 0, config_path_.c_str()) == 1);
+        wchar_t action_buffer[8192];
+        GetPrivateProfileStringW(L"general", L"launch_on_startup", L"", action_buffer, 8192, config_path_.c_str());
+        launch_on_startup_ = action_buffer;
+        GetPrivateProfileStringW(L"general", L"launch_on_exit", L"", action_buffer, 8192, config_path_.c_str());
+        launch_on_exit_ = action_buffer;
 
         // Read win32k setting from [general] section
         // 0 = disabled (default, safer, better for video streaming)
@@ -102,6 +111,10 @@ public:
     {
         return webui_enabled_;
     }
+
+    bool AreLifecycleActionsEnabled() const { return lifecycle_actions_enabled_; }
+    const std::wstring& GetLaunchOnStartup() const { return launch_on_startup_; }
+    const std::wstring& GetLaunchOnExit() const { return launch_on_exit_; }
 
     // Returns additional command line arguments from config
     const std::wstring& GetCommandLine() const

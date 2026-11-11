@@ -13,6 +13,7 @@
 #include "hotkey.h"
 #include "web_settings.h"
 #include "about_integration.h"
+#include "lifecycle.h"
 
 // Global module instance
 HMODULE hInstance = nullptr;
@@ -39,6 +40,9 @@ void VivaldiPlus()
 
     // Apply portable mode registry patches
     MakeGreen();
+
+    const auto& config = GetConfig();
+    InitializeLifecycle({config.AreLifecycleActionsEnabled(), config.GetLaunchOnStartup(), config.GetLaunchOnExit()});
 
     // Initialize boss key hotkey (if configured in config.ini)
     bosskey::Initialize();

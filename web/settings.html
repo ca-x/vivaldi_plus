@@ -21,6 +21,7 @@
     <a class="brand" href="#main" aria-label="Vivaldi++"><span class="brand-logo" aria-hidden="true"><img class="logo-image" src="logo.png" width="128" height="128" alt=""></span><span>Vivaldi<span class="brand-plus">++</span><small data-i18n="settings">设置</small></span></a>
     <nav aria-label="Settings">
       <a href="#general" data-i18n="general">常规</a>
+      <a href="#lifecycle" data-i18n="lifecycle">启停动作</a>
       <a href="#paths" data-i18n="paths">存储目录</a>
       <a href="#hotkey" data-i18n="hotkey">快捷键</a>
       <a href="#appearance" data-i18n="appearance">外观与语言</a>
@@ -40,6 +41,11 @@
           <div class="toggle-row"><div><label for="debug" data-i18n="debug"></label><p id="debug-help" data-i18n="debugHelp"></p></div><input id="debug" type="checkbox" role="switch" data-setting="general.debug_log" aria-describedby="debug-help"></div>
           <div class="field"><label for="features" data-i18n="features"></label><input id="features" class="mono" type="text" maxlength="4094" data-setting="general.disable_features" aria-describedby="features-help"><p id="features-help" data-i18n="featuresHelp"></p></div>
           <div class="field"><label for="command" data-i18n="command"></label><input id="command" class="mono" type="text" maxlength="4094" data-setting="general.command_line" placeholder="--force-dark-mode" aria-describedby="command-help"><p id="command-help" data-i18n="commandHelp"></p></div>
+        </div></section>
+        <section id="lifecycle" class="settings-section" aria-labelledby="lifecycle-title"><div class="section-heading"><h2 id="lifecycle-title" data-i18n="lifecycle">启停动作</h2></div><div class="panel">
+          <div class="toggle-row"><div><label for="lifecycle-actions" data-i18n="lifecycleActions"></label><p id="lifecycle-help" data-i18n="lifecycleHelp"></p></div><input id="lifecycle-actions" type="checkbox" role="switch" data-setting="general.lifecycle_actions" aria-describedby="lifecycle-help"></div>
+          <div class="field"><label for="startup-action" data-i18n="startupAction"></label><input id="startup-action" class="mono" type="text" maxlength="4094" data-setting="general.launch_on_startup" aria-describedby="startup-action-help action-command-help"><p id="startup-action-help" data-i18n="startupActionHelp"></p></div>
+          <div class="field"><label for="exit-action" data-i18n="exitAction"></label><input id="exit-action" class="mono" type="text" maxlength="4094" data-setting="general.launch_on_exit" aria-describedby="exit-action-help action-command-help"><p id="exit-action-help" data-i18n="exitActionHelp"></p><p id="action-command-help" data-i18n="actionCommandHelp"></p></div>
         </div></section>
         <section id="paths" class="settings-section" aria-labelledby="paths-title"><div class="section-heading"><h2 id="paths-title" data-i18n="paths"></h2></div><div class="panel">
           <div class="field"><label for="data" data-i18n="data"></label><input id="data" class="mono" type="text" maxlength="258" data-setting="dir_setting.data" placeholder="%app%\..\Data" aria-describedby="data-help"><p id="data-help" data-i18n="dataHelp"></p></div>

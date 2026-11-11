@@ -17,7 +17,7 @@ Applied ui-ux-pro-max: `search.py "browser settings productivity utility minimal
 
 ## Layout
 
-Desktop has a 240 px sidebar, 64 px header, and max 920 px reading column. Sidebar provides general/paths/hotkey/appearance/about anchor links. Sections use plain headings and concise field-specific instructions. No decorative numbering, promotional slogans, offline/account badges, duplicate configuration labels, or architecture descriptions appear in the UI. The connected configuration panel shows its actual file path and reload action without extra explanation. Below 800 px the sidebar becomes a horizontal navigation; below 540 px every row and action group wraps without horizontal scroll. Save controls remain in document flow so enlarged text and mobile keyboards never cover fields.
+Desktop has a 240 px sidebar, 64 px header, and max 920 px reading column. Sidebar provides general/lifecycle/paths/hotkey/appearance/about anchor links. Sections use plain headings and concise field-specific instructions. No decorative numbering, promotional slogans, offline/account badges, duplicate configuration labels, or architecture descriptions appear in the UI. The connected configuration panel shows its actual file path and reload action without extra explanation. Below 800 px the sidebar becomes a horizontal navigation; below 540 px every row and action group wraps without horizontal scroll. Save controls remain in document flow so enlarged text and mobile keyboards never cover fields.
 
 The cleanup follows `docs/ui-cleanup-plan.md` and ai-slop-cleaner: retain behavior tests, delete redundant content and translations, consolidate checkbox selectors, then verify localization, control IDs, and narrow layout behavior. Theme tokens and the native configuration API are unchanged.
 
@@ -28,6 +28,8 @@ The native about entry uses Vivaldi's context-free `Settings` translation and al
 Complete Simplified Chinese and English dictionaries cover static text, document title, status messages, confirmation dialogs, help and validation errors. Language defaults to browser language. Light/dark/system selection defaults to system; system follows changes through matchMedia. Both preferences persist independently of config.ini in localStorage; storage failures retain working session preferences. No external network requests.
 
 ## Data and interaction
+
+Lifecycle actions reuse the native switch, field and monospace primitives without new CSS. The switch is off by default; startup and exit commands default to blank and remain editable while off. Save and a complete restart of all instances apply changes. Concise bilingual hints explain first-instance startup, last normal exit, the three-second exit wait, quoting, variables and explicit script interpreters. Commands are single executable command lines; the editor never executes commands or splits semicolons. Serialized command values receive an INI quote wrapper so Win32 INI reading preserves executable and argument quotes.
 
 The DLL serves embedded HTML/CSS/JS on a loopback HTTP origin. The settings page activates the native bridge only on http://127.0.0.1 with a substituted `vivaldi-plus-token` meta tag. GET /api/config loads `{text, exists, revision, path}`. PUT sends UTF-16LE BOM bytes with `X-Vivaldi-Plus-Token` and `X-Vivaldi-Plus-Revision`; an HTTP 409 retains the user's edits and requests a reload. All requests use same-origin credentials, no-store and reject redirects. The connected state identifies the exact native config path; reload and save work without a file picker.
 

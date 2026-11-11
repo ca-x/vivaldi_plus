@@ -8,6 +8,7 @@
 #include <string_view>
 #include <vector>
 #include <utility>
+#include <iterator>
 
 #include "config.h"
 #include "utils.h"
@@ -459,12 +460,13 @@ inline std::wstring GetCommand(LPWSTR param)
 
 inline void Portable(LPWSTR param)
 {
-    wchar_t path[MAX_PATH];
-    if (!::GetModuleFileName(nullptr, path, MAX_PATH))
+    wchar_t path[32768] = {};
+    const DWORD path_length = ::GetModuleFileNameW(nullptr, path, static_cast<DWORD>(std::size(path)));
+    if (!path_length || path_length >= std::size(path))
     {
         if (GetConfig().IsDebugLogEnabled())
         {
-            DebugLog(L"GetModuleFileName failed: %d", GetLastError());
+            DebugLog(L"GetModuleFileNameW failed or truncated: %d", path_length ? ERROR_INSUFFICIENT_BUFFER : GetLastError());
         }
         return;
     }
@@ -476,23 +478,26 @@ inline void Portable(LPWSTR param)
         DebugLog(L"Portable mode: path=%s, args=%s", path, args.c_str());
     }
 
-    SHELLEXECUTEINFO sei = {0};
-    sei.cbSize = sizeof(SHELLEXECUTEINFO);
-    sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
-    sei.lpVerb = L"open";
-    sei.lpFile = path;
-    sei.nShow = SW_SHOWNORMAL;
-    sei.lpParameters = args.c_str();
-
-    if (ShellExecuteEx(&sei))
+    std::wstring command_line = L"\"" + std::wstring(path, path_length) + L"\"";
+    if (!args.empty()) command_line += L" " + args;
+    const std::wstring directory = GetAppDir();
+    STARTUPINFOW startup = {};
+    startup.cb = sizeof(startup);
+    startup.dwFlags = STARTF_USESHOWWINDOW;
+    startup.wShowWindow = SW_SHOWNORMAL;
+    PROCESS_INFORMATION process = {};
+    if (::CreateProcessW(path, command_line.data(), nullptr, nullptr, FALSE, 0,
+        nullptr, directory.c_str(), &startup, &process))
     {
+        CloseHandle(process.hThread);
+        CloseHandle(process.hProcess);
         ExitProcess(0);
     }
     else
     {
         if (GetConfig().IsDebugLogEnabled())
         {
-            DebugLog(L"ShellExecuteEx failed: %d", GetLastError());
+            DebugLog(L"CreateProcessW failed: %d", GetLastError());
         }
     }
 }
