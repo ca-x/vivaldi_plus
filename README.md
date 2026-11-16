@@ -80,7 +80,9 @@ Chrome 对应入口在 `chrome://settings/help`（设置 → 关于 Chrome）。
 
 #### Chrome 兼容
 
-提供 `vivaldi-windows-*.zip` 和 `chrome-windows-*.zip` 两套包，共用原生 DLL，按实际浏览器识别入口。
+Vivaldi 保持原有更新接口文件名：`windows_x64.zip`、`windows_x86.zip`、`windows_arm64.zip`。
+Chrome 使用 `chrome-windows-x64.zip`、`chrome-windows-x86.zip`、`chrome-windows-arm64.zip`。
+两套包共用原生 DLL，按实际浏览器识别入口。发布流程会校验这些固定名称，避免破坏已有更新服务。
 将 DLL 放在 `vivaldi.exe` 或 `Chrome.exe` 同目录，统一使用本项目的 `config.ini`。
 Chrome 支持便携数据/缓存目录、启动参数、老板键，以及显式开启后的网页设置。
 其他 Chrome++ 项目的 `chrome++.ini` 和标签增强选项不会自动迁移；不要混用两套 DLL。
@@ -377,6 +379,8 @@ Instances from the same installation share one service and port, with takeover w
 The settings service is not started when no supported about-page entry is found.
 
 Chrome and Vivaldi packages share the native DLL and use this project's `config.ini`.
+Vivaldi retains the updater-compatible asset names `windows_x64.zip`, `windows_x86.zip` and `windows_arm64.zip`.
+Chrome assets remain `chrome-windows-x64.zip`, `chrome-windows-x86.zip` and `chrome-windows-arm64.zip`.
 They support portable data/cache directories, startup arguments and the boss key.
 Configuration and tab-enhancement options from other Chrome++ projects are not automatically migrated.
 
