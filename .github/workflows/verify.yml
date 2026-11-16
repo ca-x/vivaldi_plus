@@ -11,6 +11,16 @@ permissions:
   contents: read
 
 jobs:
+  release-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify public release asset contract
+        run: node --test tests/release-assets.test.mjs
+
   tests:
     runs-on: windows-latest
     steps:

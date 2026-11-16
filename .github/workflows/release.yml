@@ -73,12 +73,23 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release/
-          for browser in vivaldi chrome; do
-            for arch in x86 x64 arm64; do
-              folder="dist/windows_${arch}"
-              (cd "$folder" && zip -r "../../release/${browser}-windows-${arch}.zip" .)
-            done
+          for arch in x86 x64 arm64; do
+            folder="dist/windows_${arch}"
+            (cd "$folder" && zip -r "../../release/windows_${arch}.zip" .)
+            (cd "$folder" && zip -r "../../release/chrome-windows-${arch}.zip" .)
           done
+
+      - name: Validate updater asset names
+        shell: bash
+        run: |
+          # These names are consumed by existing update services and are a public contract.
+          expected=(windows_x64.zip windows_x86.zip windows_arm64.zip chrome-windows-x64.zip chrome-windows-x86.zip chrome-windows-arm64.zip)
+          for asset in "${expected[@]}"; do
+            test -s "release/$asset"
+            unzip -Z1 "release/$asset" | grep -Eq '^(\./)?version\.dll$'
+          done
+          actual=(release/*.zip)
+          test "${#actual[@]}" -eq "${#expected[@]}"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -104,7 +115,8 @@ jobs:
             - Disabling WebUI removes its about entry. Repeated startup does not rewrite unchanged resources.
 
             ### Packages
-            Choose `vivaldi-windows-{x86,x64,arm64}.zip` or `chrome-windows-{x86,x64,arm64}.zip`.
+            Vivaldi: `windows_x64.zip`, `windows_x86.zip`, `windows_arm64.zip` (stable updater filenames).
+            Chrome: `chrome-windows-{x86,x64,arm64}.zip`.
             Both use the shared native DLL and browser-specific resource detection. Install `version.dll` next to the browser executable.
             Configuration examples are included; existing configuration files are not overwritten automatically.
 
