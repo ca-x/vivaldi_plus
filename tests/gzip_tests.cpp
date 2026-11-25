@@ -92,7 +92,7 @@ void BlockTests() {
     Bad(Wrap(reserved_length.bytes, {}), "Reserved literal");
     Writer reserved_distance;
     reserved_distance.Put(1,1); reserved_distance.Put(1,2); reserved_distance.Fixed('A'); reserved_distance.Fixed(257); reserved_distance.Code(30,5);
-    Bad(Wrap(reserved_distance.bytes, {}), "Reserved distance");
+    Bad(Wrap(reserved_distance.bytes, Bytes{'A'}), "Reserved distance");
     Bad(Wrap(Bytes{7}, {}), "Reserved block");
     Bad(Wrap(Bytes{1,1,0,0,0,'x'}, {}), "stored");
     Bad(Wrap(Bytes{1,2,0,253,255,'x'}, {}), "stored");
@@ -144,6 +144,7 @@ void HeaderTests(const Bytes& stored_expected, const Bytes& fixed_expected) {
     for(size_t i=0;i<std::size(kGzipStored);++i)Bad(std::span(kGzipStored).first(i));
     Bad(kGzipFixed,"limit",1000);
     Bad(Wrap(std::span(kGzipFixed).subspan(10,std::size(kGzipFixed)-18),{}),"limit",1000);
+    Bad(Wrap(std::span(kGzipFixed).subspan(10,std::size(kGzipFixed)-18),{}),"limit");
     Bad(kGzipFixed,"limit",64*1024*1024+1);
     for(size_t i=0;i<std::size(kGzipFixed);++i)for(unsigned bit=0;bit<8;++bit){
         Bytes changed(std::begin(kGzipFixed),std::end(kGzipFixed));changed[i]^=static_cast<uint8_t>(1u<<bit);

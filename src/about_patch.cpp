@@ -4,6 +4,7 @@
 namespace {
 constexpr std::string_view begin_marker = "/* vivaldi-plus-ui:start */";
 constexpr std::string_view end_marker = "/* vivaldi-plus-ui:end */";
+static_assert(begin_marker.starts_with(kVivaldiAboutMarkerPrefix) && end_marker.starts_with(kVivaldiAboutMarkerPrefix));
 
 std::string RegexLiteral(std::string_view text) {
     std::string result;

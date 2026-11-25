@@ -228,7 +228,7 @@ bool DecodeGzip(std::span<const uint8_t> input, size_t max_output,
     if (expected_size > max_output) return fail("Gzip size exceeds output limit");
     std::vector<uint8_t> candidate;
     candidate.reserve(expected_size);
-    if (!Inflate(input.subspan(at, footer - at), max_output, candidate, error)) return false;
+    if (!Inflate(input.subspan(at, footer - at), expected_size, candidate, error)) return false;
     if (candidate.size() != expected_size) return fail("Gzip decoded size mismatch");
     if (Crc32(candidate) != Little32(input, footer)) return fail("Gzip data CRC mismatch");
     output = std::move(candidate);

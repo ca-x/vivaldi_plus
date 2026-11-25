@@ -105,6 +105,14 @@ void IntegrationTests() {
     Check(Read(bundle) == "unsupported UI" && std::filesystem::last_write_time(bundle) == unsupported_time, "Unsupported bundle must stay unchanged");
     Check(std::distance(std::filesystem::directory_iterator(directory), std::filesystem::directory_iterator()) == 1, "Skipped modification must not leave extra files");
     Check(!std::filesystem::exists(std::filesystem::path(fake_app) / L"vivaldi-plus-integration.log"), "Installer must not create log files");
+    const auto large_fixture = std::string(32 * 1024 - installed.find("/* vivaldi-plus-ui:start */") - 5, ' ') + fixture;
+    Write(bundle, large_fixture);
+    InitializeAboutPage(L"http://127.0.0.1:16877/settings.html");
+    const auto large_installed = Read(bundle);
+    Check(large_installed.find("/* vivaldi-plus-ui:start */") == 32 * 1024 - 5,
+        "Test marker must span a read boundary");
+    RemoveAboutPageEntry();
+    Check(Read(bundle) == large_fixture, "Disabling must find a marker spanning read chunks");
     std::filesystem::remove_all(fake_app);
     std::cout << "PASS native about-page installer idempotence/skip tests\n";
 }

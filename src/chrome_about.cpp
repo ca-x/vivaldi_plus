@@ -6,7 +6,6 @@
 #include <vector>
 
 namespace {
-constexpr std::string_view gzip_comment = "vivaldi-plus-chrome-entry";
 constexpr std::string_view begin_marker = "<!-- vivaldi-plus-chrome:start -->";
 constexpr std::string_view end_marker = "<!-- vivaldi-plus-chrome:end -->";
 constexpr std::string_view about_section = "<settings-section page-title=\"$i18n{aboutPageTitle}\">";
@@ -55,7 +54,7 @@ bool PatchChromeAbout(std::string_view pack, std::string_view settings_url,
         !std::all_of(version.begin(), version.end(), [](char c) { return (c >= '0' && c <= '9') || c == '.'; })))
         return fail("Invalid Chrome settings URL or version");
     // Our gzip comment permits the default-off path to avoid inflating unrelated resources.
-    if (!enabled && pack.find(gzip_comment) == std::string::npos) { output.assign(pack); error.clear(); return true; }
+    if (!enabled && pack.find(kChromeAboutMarker) == std::string::npos) { output.assign(pack); error.clear(); return true; }
     if (pack.size() < 18 || pack.size() > 64 * 1024 * 1024 || Read32(pack, 0) != 5)
         return fail("Unsupported Chrome resource pack format");
     const size_t count = Read16(pack, 8), aliases = Read16(pack, 10);
@@ -81,23 +80,23 @@ bool PatchChromeAbout(std::string_view pack, std::string_view settings_url,
     std::string original;
     for (size_t i = 0; i < count; ++i) {
         const auto resource = pack.substr(offsets[i], offsets[i + 1] - offsets[i]);
-        if (!enabled && resource.find(gzip_comment) == std::string_view::npos) continue;
-        std::string text;
+        if (!enabled && resource.find(kChromeAboutMarker) == std::string_view::npos) continue;
+        auto text = resource;
+        std::vector<uint8_t> decoded;
         if (IsGzip(resource)) {
             const auto decoded_size = Read32(resource, resource.size() - 4);
             if (decoded_size > 16 * 1024 * 1024) continue;
-            std::vector<uint8_t> decoded;
             std::string decode_error;
             if (!DecodeGzip(Bytes(resource), 16 * 1024 * 1024, decoded, decode_error)) {
-                if (resource.find(gzip_comment) != std::string_view::npos) return fail("Modified Chrome resource is corrupt");
+                if (resource.find(kChromeAboutMarker) != std::string_view::npos) return fail("Modified Chrome resource is corrupt");
                 continue;
             }
             if (decoded.empty()) continue;
-            text.assign(reinterpret_cast<const char*>(decoded.data()), decoded.size());
-        } else text.assign(resource);
+            text = std::string_view(reinterpret_cast<const char*>(decoded.data()), decoded.size());
+        }
         if (text.find("settings-about-page") == std::string::npos || text.find(about_section) == std::string::npos) continue;
         if (selected != count) return fail("Multiple Chrome about templates");
-        selected = i; original = std::move(text);
+        selected = i; original.assign(text);
     }
     if (selected == count) return fail("Chrome settings/help template unavailable");
     std::string text = original;
@@ -116,7 +115,7 @@ bool PatchChromeAbout(std::string_view pack, std::string_view settings_url,
     }
     if (text == original) { output.assign(pack); error.clear(); return true; }
     std::vector<uint8_t> encoded;
-    if (!EncodeGzipStored(Bytes(text), enabled ? gzip_comment : std::string_view{}, encoded, error)) return false;
+    if (!EncodeGzipStored(Bytes(text), enabled ? kChromeAboutMarker : std::string_view{}, encoded, error)) return false;
     const int64_t delta = static_cast<int64_t>(encoded.size()) - (offsets[selected + 1] - offsets[selected]);
     const int64_t new_size = static_cast<int64_t>(pack.size()) + delta;
     if (new_size < 0 || new_size > 64 * 1024 * 1024) return fail("Modified Chrome pack exceeds size limit");
