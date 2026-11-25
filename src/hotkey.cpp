@@ -7,10 +7,10 @@
 #include <tlhelp32.h>
 #include <wrl/client.h>
 
-#include <algorithm>
-#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <iterator>
 #include <mutex>
-#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -24,101 +24,60 @@ namespace bosskey {
 
 namespace {
 
-using HotkeyAction = void (*)();
+constexpr auto UNMUTE_RETRY_DELAY = std::chrono::milliseconds(500);
+constexpr ULONGLONG PID_CACHE_DURATION_MS = 5000;
 
-// Delayed unmute retry configuration
-constexpr UINT UNMUTE_RETRY_DELAY_MS = 500;
-
-// PID cache to avoid frequent process enumeration
-constexpr ULONGLONG PID_CACHE_DURATION_MS = 5000;  // 5 seconds
-
-// Lazy-initialized state variables (only created when bosskey is actually used)
-struct BossKeyState {
-    std::atomic<bool> is_hide{false};
-    std::vector<HWND> hwnd_list;
-    std::unordered_map<std::wstring, bool> original_mute_states;
-    std::atomic<bool> has_unmuted_sessions{false};
-    std::mutex audio_state_mutex;
-    HANDLE unmute_retry_timer{nullptr};
-    std::mutex timer_mutex;
+struct AudioState {
+  std::unordered_map<std::wstring, bool> original_mute_states;
+  bool had_unmuted_sessions = false;
 };
 
-// Get singleton state instance (lazy initialization)
-BossKeyState& GetState() {
-    static BossKeyState state;
-    return state;
-}
+struct ComApartment {
+  HRESULT result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+  ~ComApartment() {
+    if (SUCCEEDED(result)) CoUninitialize();
+  }
+};
 
 class ProcessCache {
 public:
-    std::vector<DWORD> GetPids() {
-        ULONGLONG current_time = GetTickCount64();
-
-        // Use lock to ensure thread-safe access
-        std::lock_guard<std::mutex> lock(cache_mutex_);
-
-        // Update cache if expired or empty
-        if (cached_pids_.empty() ||
-            (current_time - last_update_time_) > PID_CACHE_DURATION_MS) {
-            cached_pids_ = GetAppPidsInternal();
-            last_update_time_ = current_time;
-        }
-
-        return cached_pids_;
+  const std::vector<DWORD>& GetPids() {
+    const ULONGLONG current_time = GetTickCount64();
+    if (cached_pids_.empty() || current_time - last_update_time_ > PID_CACHE_DURATION_MS) {
+      cached_pids_ = GetAppPidsInternal();
+      last_update_time_ = current_time;
     }
-
-    // Force refresh cache (call when process state might have changed)
-    void InvalidateCache() {
-        std::lock_guard<std::mutex> lock(cache_mutex_);
-        cached_pids_.clear();
-        last_update_time_ = 0;
-    }
+    return cached_pids_;
+  }
 
 private:
-    std::vector<DWORD> GetAppPidsInternal();
-
-    std::vector<DWORD> cached_pids_;
-    ULONGLONG last_update_time_ = 0;
-    std::mutex cache_mutex_;
+  static std::vector<DWORD> GetAppPidsInternal();
+  std::vector<DWORD> cached_pids_;
+  ULONGLONG last_update_time_ = 0;
 };
 
-// Get PID cache instance (lazy initialization)
-ProcessCache& GetProcessCache() {
-    static ProcessCache cache;
-    return cache;
-}
+BOOL CALLBACK HideBrowserWindow(HWND hwnd, LPARAM parameter) {
+  DWORD pid = 0;
+  GetWindowThreadProcessId(hwnd, &pid);
+  if (pid != GetCurrentProcessId() || !IsWindowVisible(hwnd)) return TRUE;
 
-// Search for Vivaldi browser windows
-BOOL CALLBACK SearchVivaldiWindow(HWND hwnd, LPARAM lparam) {
-  if (IsWindowVisible(hwnd)) {
-    wchar_t class_name[256];
-    GetClassNameW(hwnd, class_name, 255);
-
-    // Vivaldi uses the same window class as Chrome
-    if (wcscmp(class_name, L"Chrome_WidgetWin_1") == 0) {
-      DWORD pid;
-      GetWindowThreadProcessId(hwnd, &pid);
-      if (pid == GetCurrentProcessId()) {
-        ShowWindow(hwnd, SW_HIDE);
-        GetState().hwnd_list.emplace_back(hwnd);
-      }
-    }
+  wchar_t class_name[32];
+  if (GetClassNameW(hwnd, class_name, static_cast<int>(std::size(class_name))) &&
+      wcscmp(class_name, L"Chrome_WidgetWin_1") == 0) {
+    ShowWindow(hwnd, SW_HIDE);
+    reinterpret_cast<std::vector<HWND>*>(parameter)->push_back(hwnd);
   }
-  return true;
+  return TRUE;
 }
 
 // Internal implementation for getting all PIDs of current application
 std::vector<DWORD> ProcessCache::GetAppPidsInternal() {
   std::vector<DWORD> pids;
-  wchar_t current_exe_path[MAX_PATH];
-  GetModuleFileNameW(nullptr, current_exe_path, MAX_PATH);
-
-  wchar_t* exe_name = wcsrchr(current_exe_path, L'\\');
-  if (exe_name) {
-    ++exe_name;
-  } else {
-    exe_name = current_exe_path;
-  }
+  std::vector<wchar_t> current_exe_path(32768);
+  const auto length = GetModuleFileNameW(nullptr, current_exe_path.data(), static_cast<DWORD>(current_exe_path.size()));
+  if (!length || length >= current_exe_path.size()) return pids;
+  const wchar_t* separator = wcsrchr(current_exe_path.data(), L'\\');
+  const wchar_t* exe_name = separator ? separator + 1 : current_exe_path.data();
 
   HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
   if (snapshot == INVALID_HANDLE_VALUE) {
@@ -140,10 +99,6 @@ std::vector<DWORD> ProcessCache::GetAppPidsInternal() {
   return pids;
 }
 
-// Get all PIDs of current application (using cache)
-std::vector<DWORD> GetAppPids() {
-  return GetProcessCache().GetPids();
-}
 // Collect all active audio devices (default + all active devices)
 std::vector<ComPtr<IMMDevice>> CollectAudioDevices(IMMDeviceEnumerator* enumerator) {
   std::vector<ComPtr<IMMDevice>> devices;
@@ -191,272 +146,184 @@ std::vector<ComPtr<IMMDevice>> CollectAudioDevices(IMMDeviceEnumerator* enumerat
   return devices;
 }
 
-// Mute or unmute process audio sessions
-// Returns true if any session was found
-bool MuteProcess(const std::vector<DWORD>& pids,
-                 bool set_mute,
-                 bool save_mute_state = false) {
-  bool found_any_session = false;
-
-  // Convert PIDs to unordered_set for O(1) lookup
-  std::unordered_set<DWORD> pid_set(pids.begin(), pids.end());
-
-  HRESULT hr = CoInitialize(nullptr);
-  const bool should_uninit = (hr == S_OK || hr == S_FALSE);
-  if (FAILED(hr) && hr != RPC_E_CHANGED_MODE) {
-    return false;
-  }
+void MuteProcess(const std::vector<DWORD>& pids, bool hide, AudioState& state) {
+  if (pids.empty()) return;
+  ComApartment apartment;
+  if (FAILED(apartment.result)) return;
 
   ComPtr<IMMDeviceEnumerator> enumerator;
   if (FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
                               IID_PPV_ARGS(&enumerator))) || !enumerator) {
-    if (should_uninit) CoUninitialize();
-    return false;
+    return;
   }
 
-  // Collect all audio devices
-  auto devices = CollectAudioDevices(enumerator.Get());
-
-  // Process each device
-  for (const auto& device : devices) {
+  const std::unordered_set<DWORD> pid_set(pids.begin(), pids.end());
+  for (const auto& device : CollectAudioDevices(enumerator.Get())) {
     ComPtr<IAudioSessionManager2> manager;
     if (FAILED(device->Activate(__uuidof(IAudioSessionManager2), CLSCTX_ALL,
                                 nullptr, IID_PPV_ARGS_Helper(&manager))) || !manager) {
       continue;
     }
 
-    ComPtr<IAudioSessionEnumerator> session_enumerator;
-    if (SUCCEEDED(manager->GetSessionEnumerator(&session_enumerator))) {
-      int session_count = 0;
-      session_enumerator->GetCount(&session_count);
+    ComPtr<IAudioSessionEnumerator> sessions;
+    int count = 0;
+    if (FAILED(manager->GetSessionEnumerator(&sessions)) || !sessions ||
+        FAILED(sessions->GetCount(&count))) continue;
 
-      for (int i = 0; i < session_count; ++i) {
-        ComPtr<IAudioSessionControl> session;
-        if (FAILED(session_enumerator->GetSession(i, &session)) || !session) {
+    for (int i = 0; i < count; ++i) {
+      ComPtr<IAudioSessionControl> session;
+      ComPtr<IAudioSessionControl2> session2;
+      DWORD pid = 0;
+      if (FAILED(sessions->GetSession(i, &session)) || !session ||
+          FAILED(session.As(&session2)) || FAILED(session2->GetProcessId(&pid)) ||
+          !pid_set.contains(pid)) continue;
+
+      ComPtr<ISimpleAudioVolume> volume;
+      LPWSTR session_id = nullptr;
+      if (FAILED(session2.As(&volume)) ||
+          FAILED(session2->GetSessionInstanceIdentifier(&session_id)) || !session_id) continue;
+
+      if (hide) {
+        BOOL was_muted = FALSE;
+        if (SUCCEEDED(volume->GetMute(&was_muted))) {
+          state.original_mute_states.try_emplace(session_id, was_muted != FALSE);
+          if (!was_muted) state.had_unmuted_sessions = true;
+          volume->SetMute(TRUE, nullptr);
+        }
+      } else {
+        const auto original = state.original_mute_states.find(session_id);
+        if (original != state.original_mute_states.end()) {
+          volume->SetMute(original->second ? TRUE : FALSE, nullptr);
+        } else if (state.had_unmuted_sessions) {
+          volume->SetMute(FALSE, nullptr);
+        }
+      }
+      CoTaskMemFree(session_id);
+    }
+  }
+}
+
+class AudioWorker {
+public:
+  void SetHidden(bool hidden) {
+    if (!thread_) {
+      if (!hidden) return;
+      thread_ = CreateThread(nullptr, 0, Entry, this, 0, nullptr);
+      if (!thread_) return;
+    }
+    {
+      std::lock_guard lock(mutex_);
+      desired_hidden_ = hidden;
+    }
+    changed_.notify_one();
+  }
+
+  ~AudioWorker() {
+    if (!thread_) return;
+    {
+      std::lock_guard lock(mutex_);
+      stopping_ = true;
+    }
+    changed_.notify_one();
+    WaitForSingleObject(thread_, INFINITE);
+    CloseHandle(thread_);
+  }
+
+private:
+  static DWORD WINAPI Entry(void* worker) {
+    static_cast<AudioWorker*>(worker)->Run();
+    return 0;
+  }
+
+  void Run() {
+    AudioState state;
+    ProcessCache pids;
+    bool hidden = false;
+    bool retry_pending = false;
+    std::chrono::steady_clock::time_point retry_at;
+    std::unique_lock lock(mutex_);
+    const auto changed = [&] { return stopping_ || desired_hidden_ != hidden; };
+
+    while (!stopping_) {
+      bool retry = false;
+      if (!changed()) {
+        if (!retry_pending) {
+          changed_.wait(lock, changed);
           continue;
         }
-
-        ComPtr<IAudioSessionControl2> session2;
-        if (SUCCEEDED(session.As(&session2))) {
-          DWORD session_pid = 0;
-          session2->GetProcessId(&session_pid);
-
-          // Check if this session belongs to our process (O(1) lookup with unordered_set)
-          bool is_our_process = pid_set.find(session_pid) != pid_set.end();
-
-          if (is_our_process) {
-            found_any_session = true;
-
-            // Get unique session instance ID (GUID)
-            LPWSTR session_id = nullptr;
-            if (SUCCEEDED(session2->GetSessionInstanceIdentifier(&session_id)) && session_id) {
-              ComPtr<ISimpleAudioVolume> volume;
-              if (SUCCEEDED(session2.As(&volume))) {
-                BOOL is_muted = FALSE;
-                volume->GetMute(&is_muted);
-
-                if (save_mute_state) {
-                  // Save the current mute state for this specific session (thread-safe)
-                  auto& state = GetState();
-                  std::lock_guard<std::mutex> lock(state.audio_state_mutex);
-                  state.original_mute_states[session_id] = (is_muted == TRUE);
-                  if (is_muted == FALSE) {
-                    state.has_unmuted_sessions.store(true, std::memory_order_release);
-                  }
-                }
-
-                if (set_mute) {
-                  // Mute all sessions
-                  volume->SetMute(TRUE, nullptr);
-                } else {
-                  // Restore original mute state for this session
-                  auto& state = GetState();
-                  std::lock_guard<std::mutex> lock(state.audio_state_mutex);
-                  auto it = state.original_mute_states.find(session_id);
-                  if (it != state.original_mute_states.end()) {
-                    // Restore to the original state (muted or unmuted)
-                    volume->SetMute(it->second ? TRUE : FALSE, nullptr);
-                  } else {
-                    // Session not found in saved states (might be newly created)
-                    // Unmute if we had any unmuted sessions originally
-                    if (state.has_unmuted_sessions.load(std::memory_order_acquire)) {
-                      volume->SetMute(FALSE, nullptr);
-                    }
-                  }
-                }
-              }
-              CoTaskMemFree(session_id);
-            }
-          }
-        }
+        if (changed_.wait_until(lock, retry_at, changed)) continue;
+        retry = true;
       }
+
+      hidden = desired_hidden_;
+      lock.unlock();
+
+      MuteProcess(pids.GetPids(), hidden, state);
+      retry_pending = !hidden && !retry && state.had_unmuted_sessions;
+      if (retry_pending) {
+        retry_at = std::chrono::steady_clock::now() + UNMUTE_RETRY_DELAY;
+      } else if (!hidden) {
+        state = {};
+      }
+
+      lock.lock();
     }
   }
 
-  if (should_uninit) {
-    CoUninitialize();
-  }
+  HANDLE thread_ = nullptr;
+  std::mutex mutex_;
+  std::condition_variable changed_;
+  bool desired_hidden_ = false;
+  bool stopping_ = false;
+};
 
-  return found_any_session;
+void RestoreBrowserWindows(std::vector<HWND>& windows) {
+  for (auto it = windows.rbegin(); it != windows.rend(); ++it) {
+    const HWND window = *it;
+    DWORD pid = 0;
+    GetWindowThreadProcessId(window, &pid);
+    if (pid != GetCurrentProcessId()) continue;
+    ShowWindow(window, SW_SHOW);
+    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    SetForegroundWindow(window);
+    SetWindowPos(window, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    SetActiveWindow(window);
+  }
+  windows.clear();
 }
 
-// Delayed unmute retry handler (runs in timer thread)
-VOID CALLBACK HandleUnmuteRetry(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
-  auto& state = GetState();
+DWORD WINAPI HotkeyThread(void* parameter) {
+  const auto flag = static_cast<UINT>(reinterpret_cast<UINT_PTR>(parameter));
+  if (!RegisterHotKey(nullptr, 0, LOWORD(flag), HIWORD(flag))) return 0;
 
-  // Stop and cleanup timer
-  {
-    std::lock_guard<std::mutex> lock(state.timer_mutex);
-    if (state.unmute_retry_timer) {
-      DeleteTimerQueueTimer(nullptr, state.unmute_retry_timer, nullptr);
-      state.unmute_retry_timer = nullptr;
-    }
-  }
-
-  if (state.is_hide.load(std::memory_order_acquire)) {
-    // Still hidden, don't retry
-    return;
-  }
-
-  // Run unmute in a separate thread to avoid blocking timer thread
-  std::thread([=]() {
-    auto vivaldi_pids = GetAppPids();
-    MuteProcess(vivaldi_pids, false, false);
-
-    // Clean up saved states after retry (thread-safe)
-    auto& state = GetState();
-    {
-      std::lock_guard<std::mutex> lock(state.audio_state_mutex);
-      state.original_mute_states.clear();
-    }
-    state.has_unmuted_sessions.store(false, std::memory_order_release);
-  }).detach();
-}
-
-// Toggle hide/show windows and mute/unmute audio
-void HideAndShow() {
-  // Get PIDs from cache (fast: ~0.1ms if cached, ~15ms on first call)
-  auto vivaldi_pids = GetAppPids();
-
-  auto& state = GetState();
-  bool current_hide_state = state.is_hide.load(std::memory_order_acquire);
-
-  if (!current_hide_state) {
-    // ===== HIDE MODE =====
-    // 1. Stop any pending retry timer
-    {
-      std::lock_guard<std::mutex> lock(state.timer_mutex);
-      if (state.unmute_retry_timer) {
-        DeleteTimerQueueTimer(nullptr, state.unmute_retry_timer, INVALID_HANDLE_VALUE);
-        state.unmute_retry_timer = nullptr;
-      }
-    }
-
-    // 2. Clear saved audio states (thread-safe)
-    {
-      std::lock_guard<std::mutex> lock(state.audio_state_mutex);
-      state.original_mute_states.clear();
-    }
-    state.has_unmuted_sessions.store(false, std::memory_order_release);
-
-    // 3. Hide windows immediately (this must be synchronous for user experience)
-    EnumWindows(SearchVivaldiWindow, 0);
-
-    // 4. Update hide state before async audio processing
-    state.is_hide.store(true, std::memory_order_release);
-
-    // 5. Mute audio asynchronously (don't block window hiding)
-    std::thread([vivaldi_pids]() {
-      MuteProcess(vivaldi_pids, true, true);
-    }).detach();
-
-  } else {
-    // ===== SHOW MODE =====
-    // 1. Update hide state first
-    state.is_hide.store(false, std::memory_order_release);
-
-    // 2. Restore windows immediately (synchronous for smooth UX)
-    for (auto r_iter = state.hwnd_list.rbegin(); r_iter != state.hwnd_list.rend(); ++r_iter) {
-      ShowWindow(*r_iter, SW_SHOW);
-      SetWindowPos(*r_iter, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-      SetForegroundWindow(*r_iter);
-      SetWindowPos(*r_iter, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-      SetActiveWindow(*r_iter);
-    }
-    state.hwnd_list.clear();
-
-    // 3. Unmute audio asynchronously (don't block window showing)
-    std::thread([vivaldi_pids]() {
-      bool found_sessions = MuteProcess(vivaldi_pids, false);
-
-      auto& state = GetState();
-      // If we found sessions and had unmuted ones, set up a retry timer
-      // to handle late-loading audio sessions
-      if (found_sessions && state.has_unmuted_sessions.load(std::memory_order_acquire)) {
-        std::lock_guard<std::mutex> lock(state.timer_mutex);
-        CreateTimerQueueTimer(
-          &state.unmute_retry_timer,
-          nullptr,
-          HandleUnmuteRetry,
-          nullptr,
-          UNMUTE_RETRY_DELAY_MS,
-          0,  // One-shot timer
-          WT_EXECUTEINTIMERTHREAD
-        );
+  AudioWorker audio;
+  std::vector<HWND> windows;
+  bool hidden = false;
+  MSG msg;
+  while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+    if (msg.message == WM_HOTKEY) {
+      hidden = !hidden;
+      if (hidden) {
+        EnumWindows(HideBrowserWindow, reinterpret_cast<LPARAM>(&windows));
       } else {
-        // No need to retry, clean up now
-        {
-          std::lock_guard<std::mutex> lock(state.audio_state_mutex);
-          state.original_mute_states.clear();
-        }
-        state.has_unmuted_sessions.store(false, std::memory_order_release);
+        RestoreBrowserWindows(windows);
       }
-    }).detach();
-  }
-}
-
-// Handle hotkey message
-void OnHotkey(HotkeyAction action) {
-  action();
-}
-
-// Register hotkey and start message loop in a separate thread
-void RegisterHotkeyThread(std::wstring_view keys, HotkeyAction action) {
-  if (keys.empty()) {
-    return;
-  }
-
-  UINT flag = ParseHotkeys(keys);
-
-  std::thread th([flag, action]() {
-    RegisterHotKey(nullptr, 0, LOWORD(flag), HIWORD(flag));
-
-    MSG msg;
-    while (GetMessage(&msg, nullptr, 0, 0)) {
-      if (msg.message == WM_HOTKEY) {
-        OnHotkey(action);
-      }
-      TranslateMessage(&msg);
-      DispatchMessage(&msg);
+      audio.SetHidden(hidden);
     }
-  });
-
-  th.detach();
+  }
+  UnregisterHotKey(nullptr, 0);
+  return 0;
 }
 
-}  // anonymous namespace
+}  // namespace
 
-// Public interface
 void Initialize() {
-  // Early return if boss key is not configured
-  // This ensures zero performance impact when feature is disabled
-  const auto& boss_key = GetConfig().GetBossKey();
-  if (boss_key.empty()) {
-    return;  // No bosskey configured, no initialization needed
-  }
-
-  // Only register hotkey if bosskey is actually configured
-  RegisterHotkeyThread(boss_key, HideAndShow);
+  const auto& keys = GetConfig().GetBossKey();
+  if (keys.empty()) return;
+  const UINT flag = ParseHotkeys(keys);
+  if (!HIWORD(flag)) return;
+  HANDLE thread = CreateThread(nullptr, 0, HotkeyThread, reinterpret_cast<void*>(static_cast<UINT_PTR>(flag)), 0, nullptr);
+  if (thread) CloseHandle(thread);
 }
 
 }  // namespace bosskey
