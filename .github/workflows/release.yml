@@ -105,6 +105,7 @@ jobs:
             - With WebUI off, startup checks for old About entries in 32 KiB chunks. Resource replacement also uses a bounded verification buffer.
             - Boss-key audio changes and delayed restoration now run in order on a single worker, avoiding hangs when toggled rapidly.
             - Updated Microsoft Detours to upstream commit `1dbd4ea`.
+            - Future Detours updates merge automatically after verification passes.
 
             - Native portable mode, startup arguments and boss key for Vivaldi and Chrome.
             - Portable relaunch now uses CreateProcessW with explicit paths, safe quoting and no inherited handles.

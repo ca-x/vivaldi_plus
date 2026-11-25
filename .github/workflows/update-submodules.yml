@@ -1,100 +1,48 @@
-name: Update Submodules
+name: Merge verified Detours updates
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
-  workflow_dispatch:
+  workflow_run:
+    workflows: [verify]
+    types: [completed]
 
 permissions:
-  actions: write
   contents: write
   pull-requests: write
 
-concurrency:
-  group: update-submodules
-  cancel-in-progress: false
-
 jobs:
-  update:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-          submodules: recursive
-
-      - name: Propose the upstream Detours revision
-        id: proposal
+      - name: Approve and merge the verified submodule commit
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          branch=codex/update-detours
-          ref="refs/heads/$branch"
-          base=$(git rev-parse HEAD)
-          before=$(git rev-parse HEAD:detours)
-          git submodule update --remote --checkout -- detours
-          after=$(git -C detours rev-parse HEAD)
-          if [[ "$before" == "$after" ]]; then
-            echo "Detours is already at $after."
+          pr=$(gh api --method GET "repos/$GH_REPO/pulls" \
+            -f "head=$GITHUB_REPOSITORY_OWNER:$HEAD_BRANCH" -f base=main -f state=open \
+            --jq ".[] | select(.user.login == \"dependabot[bot]\" and .head.sha == \"$VERIFIED_SHA\") | .number")
+          if [[ -z "$pr" ]]; then
+            echo "No open Dependabot PR matches the verified commit."
             exit 0
           fi
-          git -C detours merge-base --is-ancestor "$before" "$after"
-          git add -- detours
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit -m "Update Detours to $after"
-          head=$(git rev-parse HEAD)
-          old_head=$(git ls-remote origin "$ref" | cut -f1)
-          git push "--force-with-lease=$ref:$old_head" origin "HEAD:$ref"
 
-          pr=$(gh api --method GET "repos/$GITHUB_REPOSITORY/pulls" \
-            -f "head=$GITHUB_REPOSITORY_OWNER:$branch" -f base=main -f state=open \
-            --jq '.[0].number // empty')
-          if [[ -z "$pr" ]]; then
-            gh pr create --head "$branch" --base main \
-              --title 'Update Microsoft Detours' \
-              --body 'Advance the Detours submodule to upstream. Merge after the native tests and all three architecture builds pass.'
-            pr=$(gh pr view "$branch" --json number --jq .number)
+          files=$(gh api "repos/$GH_REPO/pulls/$pr/files" --paginate --jq '.[].filename')
+          mode=$(gh api "repos/$GH_REPO/git/trees/$VERIFIED_SHA" --jq '.tree[] | select(.path == "detours") | .mode')
+          if [[ "$files" != detours || "$mode" != 160000 ]]; then
+            echo "Only a Detours submodule pointer update can be merged automatically."
+            exit 0
           fi
-          {
-            echo "branch=$branch"
-            echo "base=$base"
-            echo "head=$head"
-            echo "pr=$pr"
-          } >> "$GITHUB_OUTPUT"
 
-      - name: Verify the exact revision and merge
-        if: steps.proposal.outputs.pr != ''
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UPDATE_BRANCH: ${{ steps.proposal.outputs.branch }}
-          UPDATE_BASE: ${{ steps.proposal.outputs.base }}
-          UPDATE_HEAD: ${{ steps.proposal.outputs.head }}
-          UPDATE_PR: ${{ steps.proposal.outputs.pr }}
-        run: |
-          # A GITHUB_TOKEN push does not trigger the usual push workflow.
-          gh workflow run verify.yml --ref "$UPDATE_BRANCH"
-          run_id=
-          for attempt in {1..24}; do
-            run_id=$(gh run list --workflow verify.yml --branch "$UPDATE_BRANCH" \
-              --commit "$UPDATE_HEAD" --event workflow_dispatch --limit 1 \
-              --json databaseId --jq '.[0].databaseId // empty')
-            if [[ -n "$run_id" ]]; then break; fi
-            sleep 5
-          done
-          if [[ -z "$run_id" ]]; then
-            echo "::error::No verification run found for $UPDATE_HEAD."
-            exit 1
-          fi
-          gh run watch "$run_id" --exit-status --interval 15
-
-          if [[ "$(git ls-remote origin refs/heads/main | cut -f1)" != "$UPDATE_BASE" ]]; then
-            echo "::error::main advanced during verification. The next update run will test the new base."
-            exit 1
-          fi
-          gh pr merge "$UPDATE_PR" --merge --match-head-commit "$UPDATE_HEAD"
-          ref="refs/heads/$UPDATE_BRANCH"
-          git push "--force-with-lease=$ref:$UPDATE_HEAD" origin ":$ref"
+          gh api --method POST "repos/$GH_REPO/pulls/$pr/reviews" \
+            -f event=APPROVE -f "commit_id=$VERIFIED_SHA" \
+            -f 'body=Native tests and all three architecture builds passed.' --silent
+          gh pr merge "$pr" --merge --match-head-commit "$VERIFIED_SHA" --delete-branch
