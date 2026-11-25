@@ -27,8 +27,13 @@ namespace {
 constexpr auto UNMUTE_RETRY_DELAY = std::chrono::milliseconds(500);
 constexpr ULONGLONG PID_CACHE_DURATION_MS = 5000;
 
+struct MuteSnapshot {
+  bool muted;
+  bool restored = false;
+};
+
 struct AudioState {
-  std::unordered_map<std::wstring, bool> original_mute_states;
+  std::unordered_map<std::wstring, MuteSnapshot> original_mute_states;
   bool had_unmuted_sessions = false;
 };
 
@@ -186,14 +191,15 @@ void MuteProcess(const std::vector<DWORD>& pids, bool hide, AudioState& state) {
       if (hide) {
         BOOL was_muted = FALSE;
         if (SUCCEEDED(volume->GetMute(&was_muted))) {
-          state.original_mute_states.try_emplace(session_id, was_muted != FALSE);
+          const auto [snapshot, inserted] = state.original_mute_states.try_emplace(session_id, MuteSnapshot{was_muted != FALSE});
+          if (!inserted && snapshot->second.restored) snapshot->second = {was_muted != FALSE};
           if (!was_muted) state.had_unmuted_sessions = true;
           volume->SetMute(TRUE, nullptr);
         }
       } else {
         const auto original = state.original_mute_states.find(session_id);
         if (original != state.original_mute_states.end()) {
-          volume->SetMute(original->second ? TRUE : FALSE, nullptr);
+          original->second.restored = SUCCEEDED(volume->SetMute(original->second.muted ? TRUE : FALSE, nullptr));
         } else if (state.had_unmuted_sessions) {
           volume->SetMute(FALSE, nullptr);
         }
